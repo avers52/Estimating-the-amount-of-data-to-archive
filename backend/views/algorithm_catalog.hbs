@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Каталог алгоритмов</title>
+  <link rel="stylesheet" href="/css/compression_styles.css">
+</head>
+<body>
+  <div class="mobile-frame">
+    <div class="content-area">
+      <div class="catalog-container">
+        <div class="section-header">Каталог алгоритмов</div>
+        <div class="section-subtitle">Выбор алгоритма архивации</div>
+
+        <form method="GET" action="/compression-algorithms/catalog" class="filter-row">
+          <input 
+            type="number" 
+            step="0.1" 
+            name="min_compression_ratio" 
+            class="filter-input" 
+            placeholder="Мин. сжатие (напр. 2.5)" 
+            value="{{filterValue}}"
+          >
+          <button type="submit" class="filter-btn">Найти</button>
+        </form>
+
+        <div class="catalog-grid">
+          {{#each algorithmsList}}
+          <a href="/compression-algorithms/feed?algorithm_id={{this.algorithm_id}}" class="algorithm-card">
+            <div class="card-image-wrap">
+              <img src="{{this.image_url}}" alt="{{this.algorithm_name}}">
+            </div>
+            <div class="card-content">
+              <div class="card-name">{{this.algorithm_name}}</div>
+              <div class="card-ratio">Сжатие: x{{this.compression_ratio}}</div>
+              <div class="card-likes">❤️ {{this.likes_count}} инженера</div>
+            </div>
+          </a>
+          {{/each}}
+        </div>
+      </div>
+    </div>
+
+    <nav class="tab-navigation">
+      <a href="/compression-algorithms/feed" class="tab-link">Лента</a>
+      <a href="/compression-algorithms/draft" class="tab-link">Черновик</a>
+      <a href="/compression-algorithms/catalog" class="tab-link active">Плитка</a>
+    </nav>
+  </div>
+</body>
+</html>

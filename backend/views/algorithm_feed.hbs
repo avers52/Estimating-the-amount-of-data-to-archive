@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Лента алгоритмов сжатия</title>
+  <link rel="stylesheet" href="/css/compression_styles.css">
+</head>
+<body>
+  <div class="mobile-frame">
+    <div class="content-area">
+      <div class="feed-container">
+        <video class="feed-video" autoplay loop muted playsinline>
+          <source src="{{algorithm.video_url}}" type="video/mp4">
+        </video>
+
+        <div class="feed-overlay-card">
+          <div class="badge-ratio">Сжатие: x{{algorithm.compression_ratio}}</div>
+          <div class="feed-title">{{algorithm.algorithm_name}}</div>
+          <div class="feed-desc">{{algorithm.algorithm_description}}</div>
+          <div class="feed-metrics">
+            Скорость: {{algorithm.compression_speed_mbps}} МБ/с | RAM: {{algorithm.ram_usage_mb}} МБ
+          </div>
+          <div class="action-row">
+            <span style="font-size: 12px; color: #64748b;">❤️ {{algorithm.likes_count}} инженера</span>
+            <a href="/compression-algorithms/feed?algorithm_id={{algorithm.algorithm_id}}&next=true" class="btn-feed-next">Следующий &rarr;</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="tab-navigation">
+      <a href="/compression-algorithms/feed" class="tab-link active">Лента</a>
+      <a href="/compression-algorithms/draft" class="tab-link">Черновик</a>
+      <a href="/compression-algorithms/catalog" class="tab-link">Плитка</a>
+    </nav>
+  </div>
+</body>
+</html>

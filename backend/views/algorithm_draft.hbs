@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Черновик алгоритма</title>
+  <link rel="stylesheet" href="/css/compression_styles.css">
+</head>
+<body>
+  <div class="mobile-frame">
+    <div class="content-area">
+      <div class="draft-container">
+        <div class="section-header">Параметры алгоритма</div>
+        <div class="section-subtitle">Черновой профиль (DRAFT)</div>
+
+        <div class="form-card">
+          <div class="form-card-title">1. Медиафайлы (MinIO)</div>
+          <div class="media-preview-box">
+            <img src="{{draftAlgorithm.image_url}}" alt="Превью">
+          </div>
+          <input class="input-field" type="text" value="{{draftAlgorithm.image_key}}" readonly>
+          <input class="input-field" type="text" value="{{draftAlgorithm.video_key}}" readonly>
+        </div>
+
+        <div class="form-card">
+          <div class="form-card-title">2. Параметры сжатия</div>
+          <input class="input-field" type="text" value="{{draftAlgorithm.algorithm_name}}">
+          <input class="input-field" type="text" value="{{draftAlgorithm.compression_ratio}} (коэффициент)">
+          <input class="input-field" type="text" value="{{draftAlgorithm.compression_speed_mbps}} (скорость МБ/с)">
+          <input class="input-field" type="text" value="{{draftAlgorithm.ram_usage_mb}} (потребление RAM МБ)">
+          <textarea class="input-field" rows="2">{{draftAlgorithm.algorithm_description}}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <nav class="tab-navigation">
+      <a href="/compression-algorithms/feed" class="tab-link">Лента</a>
+      <a href="/compression-algorithms/draft" class="tab-link active">Черновик</a>
+      <a href="/compression-algorithms/catalog" class="tab-link">Плитка</a>
+    </nav>
+  </div>
+</body>
+</html>
