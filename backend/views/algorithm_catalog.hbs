@@ -4,42 +4,140 @@
   <meta charset="UTF-8">
   <title>Каталог алгоритмов</title>
   <link rel="stylesheet" href="/css/compression_styles.css">
+  <style>
+    .catalog-container {
+      padding: 14px;
+      padding-bottom: 75px;
+      box-sizing: border-box;
+    }
+    .search-box {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .search-input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .search-btn {
+      background-color: #2e7d32;
+      color: #fff;
+      border: none;
+      padding: 0 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* СЕТКА В 2 СТОЛБЦА */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .algo-card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
+    .algo-card-img {
+      width: 100%;
+      height: 75px;
+      border-radius: 6px;
+      object-fit: cover;
+      background-color: #f3f4f6;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .algo-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 3px;
+      line-height: 1.2;
+    }
+    .algo-card-desc {
+      font-size: 11px;
+      color: #6b7280;
+      margin-bottom: 6px;
+      line-height: 1.2;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .algo-card-props {
+      font-size: 11px;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+    .btn-delete {
+      width: 100%;
+      background-color: #ef4444;
+      color: #ffffff;
+      border: none;
+      padding: 6px 0;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
   <div class="mobile-frame">
     <div class="content-area">
       <div class="catalog-container">
-        <div class="section-header">Каталог алгоритмов</div>
-        <div class="section-subtitle">Выбор алгоритма архивации</div>
+        <h2 style="margin: 0 0 2px 0; font-size: 18px;">Каталог алгоритмов</h2>
+        <p style="margin: 0 0 12px 0; font-size: 11px; color: #6b7280;">Выбор алгоритма архивации</p>
 
-        <form method="GET" action="/compression-algorithms/catalog" class="filter-row">
+        <form method="GET" action="/compression-algorithms/catalog" class="search-box">
           <input 
             type="number" 
-            step="any" 
-            name="min_compression_ratio" 
-            class="filter-input" 
-            placeholder="Коэффициент сжатия (напр. 2 или 3.8)" 
-            value="{{filterValue}}"
+            step="0.1" 
+            name="min_ratio" 
+            class="search-input" 
+            placeholder="Коэффициент (напр. 2)" 
+            value="{{minRatio}}"
           >
-          <button type="submit" class="filter-btn">Найти</button>
+          <button type="submit" class="search-btn">Найти</button>
         </form>
 
-        <div class="catalog-grid">
+        <div class="cards-grid">
           {{#each algorithms}}
-            <div class="algorithm-card">
-              <h3>{{this.name}}</h3>
-              <p>{{this.description}}</p>
-              <div>Коэффициент: x{{this.compression_ratio}}</div>
-              <div>Скорость: {{this.compression_speed_mbps}} МБ/с</div>
-              <div>Лайков: {{this.likes_count}}</div>
+            <div class="algo-card">
+              <div>
+                <img src="/{{this.image_url}}" alt="{{this.name}}" class="algo-card-img" onerror="this.src='https://placehold.co/150x80?text=Алгоритм'">
+                <div class="algo-card-title">{{this.name}}</div>
+                <div class="algo-card-desc">{{this.description}}</div>
+                <div class="algo-card-props">
+                  <div>Сжатие: <b>x{{this.compression_ratio}}</b></div>
+                  <div>Скорость: <b>{{this.compression_speed_mbps}} МБ/с</b></div>
+                  <div>Лайков: <b>{{this.likes_count}}</b></div>
+                </div>
+              </div>
 
-              <!-- Кнопка удаления услуги через чистый SQL UPDATE -->
               <form method="POST" action="/compression-algorithms/catalog/delete/{{this.id}}">
-                <button type="submit" class="delete-btn">Удалить</button>
+                <button type="submit" class="btn-delete">Удалить</button>
               </form>
+            </div>
+          {{else}}
+            <div style="grid-column: span 2; text-align: center; color: #9ca3af; font-size: 13px; margin-top: 20px;">
+              Ничего не найдено
             </div>
           {{/each}}
         </div>
+
       </div>
     </div>
 

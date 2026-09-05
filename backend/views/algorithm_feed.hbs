@@ -2,30 +2,150 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Лента алгоритмов сжатия</title>
+  <title>Лента алгоритмов</title>
   <link rel="stylesheet" href="/css/compression_styles.css">
+  <style>
+    .mobile-frame {
+      display: flex !important;
+      flex-direction: column !important;
+      height: 844px !important; /* стандартная высота мобильного фрейма */
+      overflow: hidden !important;
+      position: relative !important;
+    }
+
+    .content-area {
+      flex: 1 1 auto !important;
+      position: relative !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      display: flex !important;
+      flex-direction: column !important;
+    }
+
+    .feed-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      background: #0b111e;
+    }
+
+    .feed-video-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+    }
+
+    .feed-overlay {
+      position: relative;
+      z-index: 2;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(8px);
+      padding: 16px;
+      border-radius: 18px;
+      margin: 0 12px 14px 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .badge {
+      display: inline-block;
+      background-color: #1e5a38;
+      color: #ffffff;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .feed-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #111827;
+      margin: 0 0 4px 0;
+    }
+
+    .feed-desc {
+      font-size: 12px;
+      color: #4b5563;
+      margin: 0 0 10px 0;
+      line-height: 1.3;
+    }
+
+    .feed-stats {
+      font-size: 12px;
+      color: #1f2937;
+      margin-bottom: 12px;
+    }
+
+    .feed-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .like-label {
+      color: #dc2626;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .next-btn {
+      background-color: #1e5a38;
+      color: #ffffff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .tab-navigation {
+      flex-shrink: 0 !important;
+      position: relative !important;
+      z-index: 10 !important;
+      background: #ffffff !important;
+      border-top: 1px solid #e5e7eb !important;
+    }
+  </style>
 </head>
 <body>
   <div class="mobile-frame">
     <div class="content-area">
-      <div class="feed-container">
-        <video class="feed-video" autoplay loop muted playsinline>
-          <source src="{{algorithm.video_url}}" type="video/mp4">
-        </video>
 
-        <div class="feed-overlay-card">
-          <div class="badge-ratio">Сжатие: x{{algorithm.compression_ratio}}</div>
-          <div class="feed-title">{{algorithm.algorithm_name}}</div>
-          <div class="feed-desc">{{algorithm.algorithm_description}}</div>
-          <div class="feed-metrics">
-            Скорость: {{algorithm.compression_speed_mbps}} МБ/с | RAM: {{algorithm.ram_usage_mb}} МБ
-          </div>
-          <div class="action-row">
-            <span style="font-size: 12px; color: #64748b;">❤️ {{algorithm.likes_count}} инженера</span>
-            <a href="/compression-algorithms/feed?algorithm_id={{algorithm.algorithm_id}}&next=true" class="btn-feed-next">Следующий &rarr;</a>
+      {{#if algorithm}}
+        <div class="feed-container">
+          <!-- poster удален: видео стартует без раздражающего мигания картинки -->
+          <video class="feed-video-bg" autoplay muted loop playsinline preload="auto">
+            <source src="/{{algorithm.video_url}}" type="video/mp4">
+          </video>
+
+          <div class="feed-overlay">
+            <div class="badge">Сжатие: x{{algorithm.compression_ratio}}</div>
+            <div class="feed-title">{{algorithm.name}}</div>
+            <div class="feed-desc">{{algorithm.description}}</div>
+            <div class="feed-stats">
+              Скорость: <b>{{algorithm.compression_speed_mbps}} МБ/с</b>
+            </div>
+            <div class="feed-actions">
+              <span class="like-label">❤️ {{algorithm.likes_count}} инженера</span>
+              <a href="/compression-algorithms/feed?id={{algorithm.nextId}}" class="next-btn">Следующий →</a>
+            </div>
           </div>
         </div>
-      </div>
+      {{else}}
+        <div style="text-align: center; padding-top: 100px; color: #4b5563;">
+          <p>Нет опубликованных алгоритмов</p>
+        </div>
+      {{/if}}
+
     </div>
 
     <nav class="tab-navigation">

@@ -28,7 +28,7 @@ export class CompressionAlgorithmsController {
   async getCatalog(@Query('min_ratio') minRatio?: string) {
     const ratio = minRatio ? parseFloat(minRatio) : undefined;
     const algorithms = await this.algoService.getCatalog(ratio);
-    return { algorithms };
+    return { algorithms, minRatio };
   }
 
   @Get('draft')
@@ -38,7 +38,6 @@ export class CompressionAlgorithmsController {
     return { draft };
   }
 
-  // Шаг 1: кнопка "Далее"
   @Post('draft/create')
   @Redirect('/compression-algorithms/draft')
   async createDraft(@Body() body: any) {
@@ -50,7 +49,6 @@ export class CompressionAlgorithmsController {
     );
   }
 
-  // Шаг 2: кнопка "Опубликовать"
   @Post('draft/publish/:id')
   @Redirect('/compression-algorithms/catalog')
   async publishDraft(@Param('id') id: string, @Body() body: any) {
@@ -62,7 +60,6 @@ export class CompressionAlgorithmsController {
     );
   }
 
-  // Удаление через чистый SQL UPDATE
   @Post('catalog/delete/:id')
   @Redirect('/compression-algorithms/catalog')
   async deleteAlgorithm(@Param('id') id: string) {
