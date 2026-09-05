@@ -25,17 +25,19 @@
         </form>
 
         <div class="catalog-grid">
-          {{#each algorithmsList}}
-          <a href="/compression-algorithms/feed?algorithm_id={{this.algorithm_id}}" class="algorithm-card">
-            <div class="card-image-wrap">
-              <img src="{{this.image_url}}" alt="{{this.algorithm_name}}">
+          {{#each algorithms}}
+            <div class="algorithm-card">
+              <h3>{{this.name}}</h3>
+              <p>{{this.description}}</p>
+              <div>Коэффициент: x{{this.compression_ratio}}</div>
+              <div>Скорость: {{this.compression_speed_mbps}} МБ/с</div>
+              <div>Лайков: {{this.likes_count}}</div>
+
+              <!-- Кнопка удаления услуги через чистый SQL UPDATE -->
+              <form method="POST" action="/compression-algorithms/catalog/delete/{{this.id}}">
+                <button type="submit" class="delete-btn">Удалить</button>
+              </form>
             </div>
-            <div class="card-content">
-              <div class="card-name">{{this.algorithm_name}}</div>
-              <div class="card-ratio">Сжатие: x{{this.compression_ratio}}</div>
-              <div class="card-likes">❤️ {{this.likes_count}} инженера</div>
-            </div>
-          </a>
           {{/each}}
         </div>
       </div>

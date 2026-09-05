@@ -1,16 +1,21 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { AppModule } from './app.module';
 import { join } from 'path';
-import { AppModule } from './app.module.js';
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  app.useStaticAssets(join(process.cwd(), 'public'));
-  app.setBaseViewsDir(join(process.cwd(), 'views'));
+  // Включаем парсинг данных обычных HTML-форм
+  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json());
+
+  // Настройка статики и шаблонизатора Handlebars
+  app.useStaticAssets(join(__dirname, '..', 'public'));
+  app.setBaseViewsDir(join(__dirname, '..', 'views'));
   app.setViewEngine('hbs');
 
   await app.listen(3000);
-  console.log('Сервер запущен: http://localhost:3000/compression-algorithms/feed');
 }
 bootstrap();

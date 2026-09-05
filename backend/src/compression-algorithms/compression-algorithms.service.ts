@@ -71,6 +71,15 @@ export class CompressionAlgorithmsService {
     videoUrl: string,
     userId: string = '1',
   ) {
+    // Проверяем требование: не более одного черновика у пользователя
+    const existingDraft = await this.getUserDraft(userId);
+    if (existingDraft) {
+      existingDraft.name = name;
+      existingDraft.image_url = imageUrl;
+      existingDraft.video_url = videoUrl;
+      return await this.algoRepo.save(existingDraft);
+    }
+
     const draft = this.algoRepo.create({
       name,
       image_url: imageUrl,
