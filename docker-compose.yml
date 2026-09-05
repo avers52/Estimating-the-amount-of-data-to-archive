@@ -2,39 +2,37 @@ version: '3.8'
 
 services:
   minio:
-    image: minio/minio:latest
-    container_name: compression_minio
+    image: minio/minio
+    container_name: minio_storage
     ports:
       - "9000:9000"
       - "9001:9001"
     environment:
       MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadminpassword
+      MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
-    volumes:
-      - minio_data:/data
-    networks:
-      - minio_network
 
-  createbuckets:
-    image: minio/mc:latest
-    container_name: compression_minio_mc
+  postgres:
+    image: postgres:15-alpine
+    container_name: archive_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: archive_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer:latest
+    container_name: archive_adminer
+    restart: always
+    ports:
+      - "8080:8080"
     depends_on:
-      - minio
-    entrypoint: >
-      /bin/sh -c "
-      until (/usr/bin/mc alias set localminio http://minio:9000 minioadmin minioadminpassword); do echo 'Waiting for MinIO...'; sleep 1; done;
-      /usr/bin/mc mb --ignore-existing localminio/compression-algorithms-media;
-      /usr/bin/mc anonymous set download localminio/compression-algorithms-media;
-      /usr/bin/mc anonymous set public localminio/compression-algorithms-media;
-      exit 0;
-      "
-    networks:
-      - minio_network
+      - postgres
 
 volumes:
-  minio_data:
-
-networks:
-  minio_network:
-    driver: bridge
+  pgdata:
