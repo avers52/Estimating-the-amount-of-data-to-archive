@@ -6,3 +6,9 @@ docker compose up -d
 
 cd backend
 npm run start:dev
+
+данные входа:
+postgres
+postgres
+password123
+archive_bd
