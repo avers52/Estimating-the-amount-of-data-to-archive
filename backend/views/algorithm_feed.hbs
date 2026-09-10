@@ -13,17 +13,40 @@
           <source src="{{algorithm.video_url}}" type="video/mp4">
         </video>
 
-        <div class="feed-overlay-card">
-          <div class="badge-ratio">Сжатие: x{{algorithm.compression_ratio}}</div>
-          <div class="feed-title">{{algorithm.algorithm_name}}</div>
-          <div class="feed-desc">{{algorithm.algorithm_description}}</div>
-          <div class="feed-metrics">
-            Скорость: {{algorithm.compression_speed_mbps}} МБ/с | RAM: {{algorithm.ram_usage_mb}} МБ
+        <!-- Название алгоритма сверху по центру -->
+        <div class="feed-top-bar">
+          <div class="feed-title-center">{{algorithm.algorithm_name}}</div>
+        </div>
+
+        <!-- Правая колонка с коэффициентом, метриками и действиями -->
+        <div class="feed-right-actions">
+          <div class="side-item">
+            <span class="side-badge-ratio">x{{algorithm.compression_ratio}}</span>
+            <span class="side-label">Сжатие</span>
           </div>
-          <div class="action-row">
-            <span style="font-size: 12px; color: #64748b;">❤️ {{algorithm.likes_count}} инженера</span>
-            <a href="/compression-algorithms/feed?algorithm_id={{algorithm.algorithm_id}}&next=true" class="btn-feed-next">Следующий &rarr;</a>
+          <div class="side-item">
+            <span class="side-icon">⚡</span>
+            <span class="side-label">{{algorithm.compression_speed_mbps}}M</span>
           </div>
+          <div class="side-item">
+            <span class="side-icon">💾</span>
+            <span class="side-label">{{algorithm.ram_usage_mb}}M</span>
+          </div>
+          <div class="side-item">
+            <span class="side-icon">❤️</span>
+            <span class="side-label">{{algorithm.likes_count}}</span>
+          </div>
+          <a href="/compression-algorithms/feed?algorithm_id={{algorithm.algorithm_id}}&next=true" class="side-next-btn">
+            ➔
+          </a>
+        </div>
+
+        <!-- Нижний блок: ровно 2 строки описания и кнопка переключения -->
+        <div class="feed-bottom-info">
+          <div class="feed-desc-short" id="feedDesc">
+            {{algorithm.algorithm_description}}
+          </div>
+          <button type="button" class="btn-more" id="moreBtn" onclick="toggleDesc()">Еще</button>
         </div>
       </div>
     </div>
@@ -34,5 +57,14 @@
       <a href="/compression-algorithms/catalog" class="tab-link">Плитка</a>
     </nav>
   </div>
+
+  <script>
+    function toggleDesc() {
+      const el = document.getElementById('feedDesc');
+      const btn = document.getElementById('moreBtn');
+      const isExpanded = el.classList.toggle('expanded');
+      btn.innerText = isExpanded ? 'Скрыть' : 'Еще';
+    }
+  </script>
 </body>
 </html>

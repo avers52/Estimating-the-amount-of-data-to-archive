@@ -12,15 +12,24 @@
         <div class="section-header">Каталог алгоритмов</div>
         <div class="section-subtitle">Выбор алгоритма архивации</div>
 
-        <form method="GET" action="/compression-algorithms/catalog" class="filter-row">
-          <input 
-            type="number" 
-            step="any" 
-            name="min_compression_ratio" 
-            class="filter-input" 
-            placeholder="Коэффициент сжатия (напр. 2 или 3.8)" 
-            value="{{filterValue}}"
-          >
+        <!-- Фильтрация числами-слайдером с кнопкой -->
+        <form method="GET" action="/compression-algorithms/catalog" class="slider-filter-form">
+          <div class="slider-group">
+            <div class="slider-labels">
+              <span>Мин. сжатие:</span>
+              <span id="sliderVal" class="slider-num">{{#if filterValue}}{{filterValue}}{{else}}1{{/if}}</span>
+            </div>
+            <input 
+              type="range" 
+              name="min_compression_ratio" 
+              min="1" 
+              max="5" 
+              step="0.1" 
+              value="{{#if filterValue}}{{filterValue}}{{else}}1{{/if}}" 
+              class="range-slider"
+              oninput="document.getElementById('sliderVal').innerText = this.value"
+            >
+          </div>
           <button type="submit" class="filter-btn">Найти</button>
         </form>
 
@@ -33,7 +42,7 @@
             <div class="card-content">
               <div class="card-name">{{this.algorithm_name}}</div>
               <div class="card-ratio">Сжатие: x{{this.compression_ratio}}</div>
-              <div class="card-likes">❤️ {{this.likes_count}} инженера</div>
+              <div class="card-likes">❤️ {{this.likes_count}}</div>
             </div>
           </a>
           {{/each}}
