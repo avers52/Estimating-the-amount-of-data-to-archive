@@ -1,10 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, MoreThanOrEqual } from 'typeorm';
-import {
-  CompressionAlgorithm,
-  AlgorithmStatus,
-} from './entities/compression-algorithm.entity';
+import { CompressionAlgorithm } from './entities/compression-algorithm.entity';
 import { AlgorithmLike } from './entities/algorithm-like.entity';
 
 @Injectable()
@@ -24,40 +21,37 @@ export class CompressionAlgorithmsService {
     if (currentId) {
       algorithm = await this.algoRepo.findOne({
         where: {
-          id: currentId as any,
-          status: AlgorithmStatus.PUBLISHED,
+          algorithm_id: parseInt(currentId, 10),
+          algorithm_status: 'published',
         },
       });
     }
 
-    // Если id не указан или алгоритм не найден — берем первый опубликованный
     if (!algorithm) {
       algorithm = await this.algoRepo.findOne({
-        where: { status: AlgorithmStatus.PUBLISHED },
-        order: { id: 'ASC' as any },
+        where: { algorithm_status: 'published' },
+        order: { algorithm_id: 'ASC' },
       });
     }
 
     if (!algorithm) return null;
 
-    // Ищем ID следующего опубликованного алгоритма (для кнопки "Следующий ->")
     const nextAlgo = await this.algoRepo
       .createQueryBuilder('algo')
-      .where('algo.status = :status', { status: AlgorithmStatus.PUBLISHED })
-      .andWhere('algo.id > :currentId', { currentId: algorithm.id })
-      .orderBy('algo.id', 'ASC')
+      .where('algo.algorithm_status = :status', { status: 'published' })
+      .andWhere('algo.algorithm_id > :currentId', { currentId: algorithm.algorithm_id })
+      .orderBy('algo.algorithm_id', 'ASC')
       .getOne();
 
-    // Если дошли до конца списка — закольцовываем на первый
     const firstAlgo = await this.algoRepo.findOne({
-      where: { status: AlgorithmStatus.PUBLISHED },
-      order: { id: 'ASC' as any },
+      where: { algorithm_status: 'published' },
+      order: { algorithm_id: 'ASC' },
     });
 
-    const nextId = nextAlgo ? nextAlgo.id : (firstAlgo ? firstAlgo.id : algorithm.id);
+    const nextId = nextAlgo ? nextAlgo.algorithm_id : (firstAlgo ? firstAlgo.algorithm_id : algorithm.algorithm_id);
 
     const likesCount = await this.likeRepo.count({
-      where: { algorithm_id: algorithm.id as any },
+      where: { algorithm_id: algorithm.algorithm_id },
     });
 
     return {
@@ -70,7 +64,7 @@ export class CompressionAlgorithmsService {
   // 2. GET CATALOG (ORM)
   async getCatalog(minRatio?: number) {
     const whereCondition: any = {
-      status: AlgorithmStatus.PUBLISHED,
+      algorithm_status: 'published',
     };
 
     if (minRatio !== undefined && !isNaN(minRatio)) {
@@ -79,13 +73,13 @@ export class CompressionAlgorithmsService {
 
     const algorithms = await this.algoRepo.find({
       where: whereCondition,
-      order: { id: 'ASC' as any },
+      order: { algorithm_id: 'ASC' },
     });
 
     return Promise.all(
       algorithms.map(async (algo) => {
         const likesCount = await this.likeRepo.count({
-          where: { algorithm_id: algo.id as any },
+          where: { algorithm_id: algo.algorithm_id },
         });
         return {
           ...algo,
@@ -96,51 +90,44 @@ export class CompressionAlgorithmsService {
   }
 
   // 3. GET DRAFT (ORM)
-  async getUserDraft(userId: string = '1') {
+  async getUserDraft(userId: number = 1) {
     return await this.algoRepo.findOne({
       where: {
-        creator_id: userId as any,
-        status: AlgorithmStatus.DRAFT,
+        creator_id: userId,
+        algorithm_status: 'draft',
       },
     });
   }
 
-  // 4. POST DRAFT CREATE (Шаг 1: кнопка "Далее", ORM)
-  async createDraft(
-    name: string,
-    imageUrl: string,
-    videoUrl: string,
-    userId: string = '1',
-  ) {
+  // 4. POST DRAFT CREATE (ORM)
+  async createDraft(name: string, userId: number = 1) {
     const existingDraft = await this.getUserDraft(userId);
     if (existingDraft) {
-      existingDraft.name = name;
-      existingDraft.image_url = imageUrl;
-      existingDraft.video_url = videoUrl;
+      existingDraft.algorithm_name = name;
       return await this.algoRepo.save(existingDraft);
     }
 
     const draft = this.algoRepo.create({
-      name,
-      image_url: imageUrl,
-      video_url: videoUrl,
+      algorithm_name: name,
       creator_id: userId,
-      status: AlgorithmStatus.DRAFT,
+      algorithm_status: 'draft',
     });
     return await this.algoRepo.save(draft);
   }
 
-  // 5. POST DRAFT PUBLISH (Шаг 2: кнопка "Опубликовать", ORM)
+  // 5. POST DRAFT PUBLISH (ORM)
   async publishDraft(
     id: string,
     description: string,
     compressionRatio: number,
     compressionSpeedMbps: number,
+    imageUrl?: string,
+    videoUrl?: string,
   ) {
     const draft = await this.algoRepo.findOne({
       where: {
-        id: id as any,
-        status: AlgorithmStatus.DRAFT,
+        algorithm_id: parseInt(id, 10),
+        algorithm_status: 'draft',
       },
     });
 
@@ -148,32 +135,35 @@ export class CompressionAlgorithmsService {
       throw new NotFoundException('Черновик не найден');
     }
 
-    draft.description = description;
+    draft.algorithm_description = description;
     draft.compression_ratio = compressionRatio;
     draft.compression_speed_mbps = compressionSpeedMbps;
-    draft.status = AlgorithmStatus.PUBLISHED;
-    draft.formed_at = new Date();
+    if (imageUrl) draft.image_url = imageUrl;
+    if (videoUrl) draft.video_url = videoUrl;
+    draft.algorithm_status = 'published';
+    draft.configured_at = new Date();
 
     return await this.algoRepo.save(draft);
   }
+
 
   // 6. POST CATALOG DELETE (Чистый SQL UPDATE без ORM)
   async deleteAlgorithmRawSql(id: string) {
     const query = `
       UPDATE compression_algorithms 
-      SET status = 'DELETED' 
-      WHERE id = $1;
+      SET algorithm_status = 'deleted' 
+      WHERE algorithm_id = $1;
     `;
-    return await this.dataSource.query(query, [id]);
+    return await this.dataSource.query(query, [parseInt(id, 10)]);
   }
 
-  // Для проверки недоступности удаленной карточки (404)
+  // Прямое обращение по ID (проверка 404 для удаленных)
   async getAlgorithmById(id: string) {
     const algo = await this.algoRepo.findOne({
-      where: { id: id as any },
+      where: { algorithm_id: parseInt(id, 10) },
     });
 
-    if (!algo || algo.status === AlgorithmStatus.DELETED) {
+    if (!algo || algo.algorithm_status === 'deleted') {
       throw new NotFoundException('Услуга удалена или не существует');
     }
     return algo;

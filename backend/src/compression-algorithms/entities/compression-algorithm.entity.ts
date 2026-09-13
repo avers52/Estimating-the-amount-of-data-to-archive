@@ -9,48 +9,48 @@ import {
 } from 'typeorm';
 
 export enum AlgorithmStatus {
-  DRAFT = 'DRAFT',
-  PUBLISHED = 'PUBLISHED',
-  DELETED = 'DELETED',
+  DRAFT = 'draft',
+  PUBLISHED = 'published',
+  DELETED = 'deleted',
 }
 
 @Entity('compression_algorithms')
 export class CompressionAlgorithm {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
-  id: string;
+  @PrimaryGeneratedColumn('increment', { name: 'algorithm_id', type: 'int' })
+  algorithm_id: number;
 
-  @Column({ type: 'varchar', length: 100 })
-  name: string;
+  @Column({ name: 'algorithm_name', type: 'varchar', length: 100 })
+  algorithm_name: string;
 
-  @Column({ type: 'text', nullable: true })
-  description: string;
+  @Column({ name: 'algorithm_description', type: 'text', nullable: true })
+  algorithm_description: string;
 
-  @Column({ type: 'varchar', length: 20, default: AlgorithmStatus.DRAFT })
-  status: AlgorithmStatus;
+  @Column({ name: 'algorithm_status', type: 'varchar', length: 20, default: AlgorithmStatus.DRAFT })
+  algorithm_status: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ name: 'image_url', type: 'varchar', length: 255, nullable: true })
   image_url: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ name: 'video_url', type: 'varchar', length: 255, nullable: true })
   video_url: string;
 
-  @Column({ type: 'numeric', precision: 4, scale: 2, nullable: true })
+  @Column({ name: 'compression_ratio', type: 'numeric', precision: 4, scale: 2, nullable: true })
   compression_ratio: number;
 
-  @Column({ type: 'numeric', precision: 8, scale: 2, nullable: true })
+  @Column({ name: 'compression_speed_mbps', type: 'int', nullable: true })
   compression_speed_mbps: number;
 
-  @CreateDateColumn({ type: 'timestamp with time zone' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   created_at: Date;
 
-  @Column({ type: 'timestamp with time zone', nullable: true })
-  formed_at: Date;
+  @Column({ name: 'configured_at', type: 'timestamp', nullable: true })
+  configured_at: Date;
 
-  @Column({ type: 'bigint', nullable: false })
-  creator_id: string;
+  @Column({ name: 'creator_id', type: 'int', nullable: false })
+  creator_id: number;
 
   @ManyToOne('User', 'algorithms', { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'creator_id' })
+  @JoinColumn({ name: 'creator_id', referencedColumnName: 'id' })
   creator: any;
 
   @OneToMany('AlgorithmLike', 'algorithm')

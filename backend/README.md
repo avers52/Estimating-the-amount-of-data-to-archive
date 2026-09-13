@@ -10,5 +10,5 @@ npm run start:dev
 данные входа:
 postgres
 postgres
-password123
+password
 archive_bd

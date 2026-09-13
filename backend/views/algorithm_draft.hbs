@@ -10,25 +10,65 @@
     <div class="content-area">
       <div class="draft-container">
         <div class="section-header">Параметры алгоритма</div>
-        <div class="section-subtitle">Черновой профиль (DRAFT)</div>
+        
+        {{#if draftAlgorithm}}
+          <div class="section-subtitle">Черновой профиль (DRAFT)</div>
 
-        <div class="form-card">
-          <div class="form-card-title">1. Медиафайлы (MinIO)</div>
-          <div class="media-preview-box">
-            <img src="{{draftAlgorithm.image_url}}" alt="Превью">
-          </div>
-          <input class="input-field" type="text" value="{{draftAlgorithm.image_key}}" readonly>
-          <input class="input-field" type="text" value="{{draftAlgorithm.video_key}}" readonly>
-        </div>
+          <!-- Форма публикации (Шаг 2) -->
+          <form method="POST" action="/compression-algorithms/draft/publish/{{draftAlgorithm.algorithm_id}}">
+            <div class="form-card">
+              <div class="form-card-title">МЕДИАФАЙЛЫ</div>
 
-        <div class="form-card">
-          <div class="form-card-title">2. Параметры сжатия</div>
-          <input class="input-field" type="text" value="{{draftAlgorithm.algorithm_name}}">
-          <input class="input-field" type="text" value="{{draftAlgorithm.compression_ratio}} (коэффициент)">
-          <input class="input-field" type="text" value="{{draftAlgorithm.compression_speed_mbps}} (скорость МБ/с)">
-          <input class="input-field" type="text" value="{{draftAlgorithm.ram_usage_mb}} (потребление RAM МБ)">
-          <textarea class="input-field" rows="2">{{draftAlgorithm.algorithm_description}}</textarea>
-        </div>
+              <!-- Видео -->
+              <div class="media-field-group">
+                <div class="media-sub-label">Видео</div>
+                <div class="media-preview-box">
+                  <video id="previewVideo" autoplay loop muted playsinline>
+                    <source src="{{#if draftAlgorithm.video_url}}{{draftAlgorithm.video_url}}{{else}}/gzip_process.mp4{{/if}}" type="video/mp4">
+                  </video>
+                </div>
+                <label class="btn-choose-file">
+                  Выбрать видео
+                  <input type="file" accept="video/*" style="display: none;" onchange="handleVideoSelect(event)">
+                </label>
+                <!-- Скрытое поле для передачи пути к видео -->
+                <input type="hidden" name="video_url" id="videoUrlInput" value="{{#if draftAlgorithm.video_url}}{{draftAlgorithm.video_url}}{{else}}/gzip_process.mp4{{/if}}">
+              </div>
+
+              <!-- Фото -->
+              <div class="media-field-group">
+                <div class="media-sub-label">Фото</div>
+                <div class="media-preview-box">
+                  <img id="previewImage" src="{{#if draftAlgorithm.image_url}}{{draftAlgorithm.image_url}}{{else}}/gzip_draft.png{{/if}}" alt="Превью фото">
+                </div>
+                <label class="btn-choose-file">
+                  Выбрать фото
+                  <input type="file" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
+                </label>
+                <!-- Скрытое поле для передачи пути к фото -->
+                <input type="hidden" name="image_url" id="imageUrlInput" value="{{#if draftAlgorithm.image_url}}{{draftAlgorithm.image_url}}{{else}}/gzip_draft.png{{/if}}">
+              </div>
+            </div>
+
+            <div class="form-card">
+              <div class="form-card-title">ПАРАМЕТРЫ СЖАТИЯ</div>
+              <input class="input-field" type="text" value="{{draftAlgorithm.algorithm_name}}" readonly style="background:#f1f5f9; font-weight:bold;">
+              <input class="input-field" type="number" step="0.01" name="compression_ratio" placeholder="Коэффициент сжатия (напр. 2.70)" required>
+              <input class="input-field" type="number" name="compression_speed_mbps" placeholder="Скорость сжатия МБ/с (напр. 110)" required>
+              <textarea class="input-field" name="algorithm_description" rows="3" placeholder="Классический утилитный алгоритм сжатия..." required></textarea>
+              <button type="submit" class="btn-primary" style="margin-top:6px;">Опубликовать</button>
+            </div>
+          </form>
+
+        {{else}}
+          <div class="section-subtitle">Новый алгоритм</div>
+
+          <form method="POST" action="/compression-algorithms/draft/create" class="form-card">
+            <div class="form-card-title">НАЗВАНИЕ АЛГОРИТМА</div>
+            <input class="input-field" type="text" name="algorithm_name" placeholder="Название алгоритма" required>
+            <button type="submit" class="btn-primary" style="margin-top: 8px;">Далее</button>
+          </form>
+        {{/if}}
       </div>
     </div>
 
@@ -38,5 +78,26 @@
       <a href="/compression-algorithms/catalog" class="tab-link">Плитка</a>
     </nav>
   </div>
+
+  <script>
+    function handleVideoSelect(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const video = document.getElementById('previewVideo');
+        video.src = URL.createObjectURL(file);
+        video.play();
+        document.getElementById('videoUrlInput').value = '/' + file.name;
+      }
+    }
+
+    function handleImageSelect(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const img = document.getElementById('previewImage');
+        img.src = URL.createObjectURL(file);
+        document.getElementById('imageUrlInput').value = '/' + file.name;
+      }
+    }
+  </script>
 </body>
 </html>

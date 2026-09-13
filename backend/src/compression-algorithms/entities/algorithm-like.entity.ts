@@ -8,19 +8,19 @@ import {
 } from 'typeorm';
 
 @Entity('algorithm_likes')
-@Unique(['user_id', 'algorithm_id'])
+@Unique(['engineer_id', 'algorithm_id'])
 export class AlgorithmLike {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
-  id: string;
+  @PrimaryGeneratedColumn('increment', { name: 'like_id', type: 'int' })
+  like_id: number;
 
-  @Column({ type: 'bigint' })
-  user_id: string;
+  @Column({ name: 'engineer_id', type: 'int' })
+  engineer_id: number;
 
-  @Column({ type: 'bigint' })
-  algorithm_id: string;
+  @Column({ name: 'algorithm_id', type: 'int' })
+  algorithm_id: number;
 
   @ManyToOne('User', 'likes', { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: 'engineer_id' })
   user: any;
 
   @ManyToOne('CompressionAlgorithm', 'likes', { onDelete: 'RESTRICT' })

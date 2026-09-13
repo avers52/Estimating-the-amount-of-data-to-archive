@@ -12,30 +12,51 @@
         <div class="section-header">Каталог алгоритмов</div>
         <div class="section-subtitle">Выбор алгоритма архивации</div>
 
-        <form method="GET" action="/compression-algorithms/catalog" class="filter-row">
-          <input 
-            type="number" 
-            step="any" 
-            name="min_compression_ratio" 
-            class="filter-input" 
-            placeholder="Коэффициент сжатия (напр. 2 или 3.8)" 
-            value="{{filterValue}}"
-          >
-          <button type="submit" class="filter-btn">Найти</button>
+        <!-- Поиск через Range Slider со счетчиком -->
+        <form method="GET" action="/compression-algorithms/catalog" class="filter-slider-box">
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span>Сжатие от:</span>
+              <span id="sliderValueDisplay">x{{#if filterValue}}{{filterValue}}{{else}}1.0{{/if}}</span>
+            </div>
+            <input 
+              type="range" 
+              name="min_compression_ratio" 
+              class="filter-range" 
+              min="1.0" 
+              max="6.0" 
+              step="0.1" 
+              value="{{#if filterValue}}{{filterValue}}{{else}}1.0{{/if}}"
+              oninput="document.getElementById('sliderValueDisplay').textContent = 'x' + parseFloat(this.value).toFixed(1)"
+            >
+          </div>
+          <button type="submit" class="btn-filter-apply">Найти</button>
         </form>
 
         <div class="catalog-grid">
           {{#each algorithmsList}}
-          <a href="/compression-algorithms/feed?algorithm_id={{this.algorithm_id}}" class="algorithm-card">
-            <div class="card-image-wrap">
-              <img src="{{this.image_url}}" alt="{{this.algorithm_name}}">
+          <div class="algorithm-card">
+            <a href="/compression-algorithms/feed?algorithm_id={{this.algorithm_id}}" style="text-decoration:none; color:inherit;">
+              <div class="card-image-wrap">
+                <!-- Заглушка по умолчанию для фото (Требование 22) -->
+                {{#if this.image_url}}
+                  <img src="{{this.image_url}}" alt="{{this.algorithm_name}}">
+                {{else}}
+                  <img src="/zstd_archiver.png" alt="Default Algorithm">
+                {{/if}}
+              </div>
+              <div class="card-content">
+                <div class="card-name">{{this.algorithm_name}}</div>
+                <div class="card-ratio">Сжатие: x{{this.compression_ratio}}</div>
+                <div class="card-likes">❤️ {{this.likes_count}}</div>
+              </div>
+            </a>
+            <div style="padding: 0 10px 10px;">
+              <form method="POST" action="/compression-algorithms/catalog/delete/{{this.algorithm_id}}">
+                <button type="submit" class="btn-card-delete">Удалить</button>
+              </form>
             </div>
-            <div class="card-content">
-              <div class="card-name">{{this.algorithm_name}}</div>
-              <div class="card-ratio">Сжатие: x{{this.compression_ratio}}</div>
-              <div class="card-likes">❤️ {{this.likes_count}} инженера</div>
-            </div>
-          </a>
+          </div>
           {{/each}}
         </div>
       </div>

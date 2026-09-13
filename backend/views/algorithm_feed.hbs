@@ -9,21 +9,49 @@
   <div class="mobile-frame">
     <div class="content-area">
       <div class="feed-container">
+        <!-- Название по центру сверху -->
+        <div class="feed-header-top">
+          <div class="feed-title-center">{{algorithm.algorithm_name}}</div>
+        </div>
+
+        <!-- Видео со статики или дефолтное (Требование 22) -->
         <video class="feed-video" autoplay loop muted playsinline>
-          <source src="{{algorithm.video_url}}" type="video/mp4">
+          {{#if algorithm.video_url}}
+            <source src="{{algorithm.video_url}}" type="video/mp4">
+          {{else}}
+            <source src="/zstd_benchmark.mp4" type="video/mp4">
+          {{/if}}
         </video>
 
-        <div class="feed-overlay-card">
-          <div class="badge-ratio">Сжатие: x{{algorithm.compression_ratio}}</div>
-          <div class="feed-title">{{algorithm.algorithm_name}}</div>
-          <div class="feed-desc">{{algorithm.algorithm_description}}</div>
-          <div class="feed-metrics">
-            Скорость: {{algorithm.compression_speed_mbps}} МБ/с | RAM: {{algorithm.ram_usage_mb}} МБ
+        <!-- Вертикальная колонка параметров справа -->
+        <div class="feed-right-column">
+          <div class="feed-action-pill">
+            <span class="icon">⚡</span>
+            <span>x{{algorithm.compression_ratio}}</span>
           </div>
-          <div class="action-row">
-            <span style="font-size: 12px; color: #64748b;">❤️ {{algorithm.likes_count}} инженера</span>
-            <a href="/compression-algorithms/feed?algorithm_id={{algorithm.algorithm_id}}&next=true" class="btn-feed-next">Следующий &rarr;</a>
+
+          <div class="feed-action-pill">
+            <span class="icon">🚀</span>
+            <span>{{algorithm.compression_speed_mbps}}M</span>
           </div>
+
+          <div class="feed-action-pill">
+            <span class="icon">❤️</span>
+            <span>{{algorithm.likes_count}}</span>
+          </div>
+
+          <a href="/compression-algorithms/feed?algorithm_id={{algorithm.nextId}}" class="feed-action-pill btn-next">
+            <span class="icon">➜</span>
+            <span>След.</span>
+          </a>
+        </div>
+
+        <!-- Описание снизу: 2 строки + кнопка "Еще" -->
+        <div class="feed-bottom-panel">
+          <div id="feedDescription" class="feed-clamped-desc">
+            {{algorithm.algorithm_description}}
+          </div>
+          <button id="btnReadMore" class="btn-read-more" onclick="toggleDescription()">Еще</button>
         </div>
       </div>
     </div>
@@ -34,5 +62,19 @@
       <a href="/compression-algorithms/catalog" class="tab-link">Плитка</a>
     </nav>
   </div>
+
+  <script>
+    function toggleDescription() {
+      const desc = document.getElementById('feedDescription');
+      const btn = document.getElementById('btnReadMore');
+      if (desc.classList.contains('expanded')) {
+        desc.classList.remove('expanded');
+        btn.textContent = 'Еще';
+      } else {
+        desc.classList.add('expanded');
+        btn.textContent = 'Скрыть';
+      }
+    }
+  </script>
 </body>
 </html>
