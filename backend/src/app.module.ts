@@ -15,7 +15,7 @@ import { AlgorithmLike } from './compression-algorithms/entities/algorithm-like.
       password: 'password',
       database: 'archive_db',
       entities: [User, CompressionAlgorithm, AlgorithmLike],
-      synchronize: true,
+      synchronize: false,
     }),
     CompressionAlgorithmsModule,
   ],
