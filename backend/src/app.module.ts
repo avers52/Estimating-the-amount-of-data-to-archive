@@ -12,7 +12,7 @@ import { AlgorithmLike } from './compression-algorithms/entities/algorithm-like.
       host: 'localhost',
       port: 5432,
       username: 'postgres',
-      password: 'password123',
+      password: 'password',
       database: 'archive_db',
       entities: [User, CompressionAlgorithm, AlgorithmLike],
       synchronize: true,
