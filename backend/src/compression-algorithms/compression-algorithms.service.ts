@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, MoreThanOrEqual } from 'typeorm';
-import { CompressionAlgorithm } from './entities/compression-algorithm.entity';
+import { CompressionAlgorithm, AlgorithmStatus } from './entities/compression-algorithm.entity';
 import { AlgorithmLike } from './entities/algorithm-like.entity';
 
 @Injectable()
@@ -22,14 +22,14 @@ export class CompressionAlgorithmsService {
       algorithm = await this.algoRepo.findOne({
         where: {
           algorithm_id: parseInt(currentId, 10),
-          algorithm_status: 'published',
+          algorithm_status: AlgorithmStatus.PUBLISHED,
         },
       });
     }
 
     if (!algorithm) {
       algorithm = await this.algoRepo.findOne({
-        where: { algorithm_status: 'published' },
+        where: { algorithm_status: AlgorithmStatus.PUBLISHED },
         order: { algorithm_id: 'ASC' },
       });
     }
@@ -38,20 +38,24 @@ export class CompressionAlgorithmsService {
 
     const nextAlgo = await this.algoRepo
       .createQueryBuilder('algo')
-      .where('algo.algorithm_status = :status', { status: 'published' })
+      .where('algo.algorithm_status = :status', { status: AlgorithmStatus.PUBLISHED })
       .andWhere('algo.algorithm_id > :currentId', { currentId: algorithm.algorithm_id })
       .orderBy('algo.algorithm_id', 'ASC')
       .getOne();
 
     const firstAlgo = await this.algoRepo.findOne({
-      where: { algorithm_status: 'published' },
+      where: { algorithm_status: AlgorithmStatus.PUBLISHED },
       order: { algorithm_id: 'ASC' },
     });
 
-    const nextId = nextAlgo ? nextAlgo.algorithm_id : (firstAlgo ? firstAlgo.algorithm_id : algorithm.algorithm_id);
+    const nextId = nextAlgo
+      ? nextAlgo.algorithm_id
+      : firstAlgo
+      ? firstAlgo.algorithm_id
+      : algorithm.algorithm_id;
 
     const likesCount = await this.likeRepo.count({
-      where: { algorithm_id: algorithm.algorithm_id },
+      where: { algorithm_id: String(algorithm.algorithm_id) as any },
     });
 
     return {
@@ -64,7 +68,7 @@ export class CompressionAlgorithmsService {
   // 2. GET CATALOG (ORM)
   async getCatalog(minRatio?: number) {
     const whereCondition: any = {
-      algorithm_status: 'published',
+      algorithm_status: AlgorithmStatus.PUBLISHED,
     };
 
     if (minRatio !== undefined && !isNaN(minRatio)) {
@@ -79,7 +83,7 @@ export class CompressionAlgorithmsService {
     return Promise.all(
       algorithms.map(async (algo) => {
         const likesCount = await this.likeRepo.count({
-          where: { algorithm_id: algo.algorithm_id },
+          where: { algorithm_id: String(algo.algorithm_id) as any },
         });
         return {
           ...algo,
@@ -90,18 +94,20 @@ export class CompressionAlgorithmsService {
   }
 
   // 3. GET DRAFT (ORM)
-  async getUserDraft(userId: number = 1) {
+  async getUserDraft(userId: string | number = '1') {
     return await this.algoRepo.findOne({
       where: {
-        creator_id: userId,
-        algorithm_status: 'draft',
+        creator_id: Number(userId),
+        algorithm_status: AlgorithmStatus.DRAFT,
       },
     });
   }
 
   // 4. POST DRAFT CREATE (ORM)
-  async createDraft(name: string, userId: number = 1) {
-    const existingDraft = await this.getUserDraft(userId);
+  async createDraft(name: string, userId: string | number = '1') {
+    const numericUserId = Number(userId);
+    const existingDraft = await this.getUserDraft(numericUserId);
+
     if (existingDraft) {
       existingDraft.algorithm_name = name;
       return await this.algoRepo.save(existingDraft);
@@ -109,8 +115,8 @@ export class CompressionAlgorithmsService {
 
     const draft = this.algoRepo.create({
       algorithm_name: name,
-      creator_id: userId,
-      algorithm_status: 'draft',
+      creator_id: numericUserId,
+      algorithm_status: AlgorithmStatus.DRAFT,
     });
     return await this.algoRepo.save(draft);
   }
@@ -127,12 +133,11 @@ export class CompressionAlgorithmsService {
     const draft = await this.algoRepo.findOne({
       where: {
         algorithm_id: parseInt(id, 10),
-        algorithm_status: 'draft',
+        algorithm_status: AlgorithmStatus.DRAFT,
       },
     });
 
-    if (!draft) {
-      throw new NotFoundException('Черновик не найден');
+    if (!draft) {throw new NotFoundException('Черновик не найден');
     }
 
     draft.algorithm_description = description;
@@ -140,12 +145,11 @@ export class CompressionAlgorithmsService {
     draft.compression_speed_mbps = compressionSpeedMbps;
     if (imageUrl) draft.image_url = imageUrl;
     if (videoUrl) draft.video_url = videoUrl;
-    draft.algorithm_status = 'published';
+    draft.algorithm_status = AlgorithmStatus.PUBLISHED;
     draft.configured_at = new Date();
 
     return await this.algoRepo.save(draft);
   }
-
 
   // 6. POST CATALOG DELETE (Чистый SQL UPDATE без ORM)
   async deleteAlgorithmRawSql(id: string) {
@@ -157,13 +161,13 @@ export class CompressionAlgorithmsService {
     return await this.dataSource.query(query, [parseInt(id, 10)]);
   }
 
-  // Прямое обращение по ID (проверка 404 для удаленных)
+  // Прямое обращение по ID (404 для удаленных)
   async getAlgorithmById(id: string) {
     const algo = await this.algoRepo.findOne({
       where: { algorithm_id: parseInt(id, 10) },
     });
 
-    if (!algo || algo.algorithm_status === 'deleted') {
+    if (!algo || algo.algorithm_status === AlgorithmStatus.DELETED) {
       throw new NotFoundException('Услуга удалена или не существует');
     }
     return algo;

@@ -6,24 +6,26 @@ import {
   JoinColumn,
   Unique,
 } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
+import { CompressionAlgorithm } from './compression-algorithm.entity';
 
 @Entity('algorithm_likes')
-@Unique(['engineer_id', 'algorithm_id'])
+@Unique(['user_id', 'algorithm_id'])
 export class AlgorithmLike {
-  @PrimaryGeneratedColumn('increment', { name: 'like_id', type: 'int' })
-  like_id: number;
+  @PrimaryGeneratedColumn('increment', { name: 'like_id', type: 'bigint' })
+  like_id: string;
 
-  @Column({ name: 'engineer_id', type: 'int' })
-  engineer_id: number;
+  @Column({ name: 'user_id', type: 'bigint' })
+  user_id: string;
 
-  @Column({ name: 'algorithm_id', type: 'int' })
-  algorithm_id: number;
+  @Column({ name: 'algorithm_id', type: 'bigint' })
+  algorithm_id: string;
 
-  @ManyToOne('User', 'likes', { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'engineer_id' })
-  user: any;
+  @ManyToOne(() => User, (user) => user.likes, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
 
-  @ManyToOne('CompressionAlgorithm', 'likes', { onDelete: 'RESTRICT' })
+  @ManyToOne(() => CompressionAlgorithm, (algo) => algo.likes, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'algorithm_id' })
-  algorithm: any;
+  algorithm: CompressionAlgorithm;
 }
