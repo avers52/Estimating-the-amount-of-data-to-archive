@@ -41,7 +41,12 @@ export class CompressionAlgorithmsController {
   @Post('draft/create')
   @Redirect('/compression-algorithms/draft')
   async createDraft(@Body() body: any) {
-    await this.algoService.createDraft(body.algorithm_name || body.name, 1);
+    await this.algoService.createDraft(
+      body.algorithm_name || body.name,
+      1,
+      body.image_url,
+      body.video_url,
+    );
   }
 
   @Post('draft/publish/:id')
@@ -56,6 +61,7 @@ export class CompressionAlgorithmsController {
       body.video_url,
     );
   }
+
 
 
   @Post('catalog/delete/:id')

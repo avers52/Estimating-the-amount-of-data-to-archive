@@ -103,13 +103,23 @@ export class CompressionAlgorithmsService {
     });
   }
 
-  // 4. POST DRAFT CREATE (ORM)
-  async createDraft(name: string, userId: string | number = '1') {
+   // 4. POST DRAFT CREATE (ORM)
+  async createDraft(
+    name: string,
+    userId: string | number = '1',
+    imageUrl?: string,
+    videoUrl?: string,
+  ) {
     const numericUserId = Number(userId);
     const existingDraft = await this.getUserDraft(numericUserId);
 
+    const finalImage = imageUrl && imageUrl.trim() !== '' ? imageUrl : '/gzip_draft.png';
+    const finalVideo = videoUrl && videoUrl.trim() !== '' ? videoUrl : '/gzip_process.mp4';
+
     if (existingDraft) {
       existingDraft.algorithm_name = name;
+      existingDraft.image_url = finalImage;
+      existingDraft.video_url = finalVideo;
       return await this.algoRepo.save(existingDraft);
     }
 
@@ -117,6 +127,8 @@ export class CompressionAlgorithmsService {
       algorithm_name: name,
       creator_id: numericUserId,
       algorithm_status: AlgorithmStatus.DRAFT,
+      image_url: finalImage,
+      video_url: finalVideo,
     });
     return await this.algoRepo.save(draft);
   }
@@ -137,19 +149,33 @@ export class CompressionAlgorithmsService {
       },
     });
 
-    if (!draft) {throw new NotFoundException('Черновик не найден');
+    if (!draft) {
+      throw new NotFoundException('Черновик не найден');
     }
 
     draft.algorithm_description = description;
     draft.compression_ratio = compressionRatio;
     draft.compression_speed_mbps = compressionSpeedMbps;
-    if (imageUrl) draft.image_url = imageUrl;
-    if (videoUrl) draft.video_url = videoUrl;
+    
+    // Если на Шаге 2 пришло валидное значение медиа — берем его, иначе оставляем из черновика или дефолт
+    if (imageUrl && imageUrl.trim() !== '') {
+      draft.image_url = imageUrl;
+    } else if (!draft.image_url) {
+      draft.image_url = '/gzip_draft.png';
+    }
+
+    if (videoUrl && videoUrl.trim() !== '') {
+      draft.video_url = videoUrl;
+    } else if (!draft.video_url) {
+      draft.video_url = '/gzip_process.mp4';
+    }
+
     draft.algorithm_status = AlgorithmStatus.PUBLISHED;
     draft.configured_at = new Date();
 
     return await this.algoRepo.save(draft);
   }
+
 
   // 6. POST CATALOG DELETE (Чистый SQL UPDATE без ORM)
   async deleteAlgorithmRawSql(id: string) {

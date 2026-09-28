@@ -40,9 +40,11 @@
               <div class="card-image-wrap">
                 <!-- Заглушка по умолчанию для фото (Требование 22) -->
                 {{#if this.image_url}}
+                  <!-- Картинка из базы (ссылка на MinIO) -->
                   <img src="{{this.image_url}}" alt="{{this.algorithm_name}}">
                 {{else}}
-                  <img src="/gzip_draft.png" alt="Default Algorithm">
+                  <!-- Дефолтное изображение (локальный статический файл GZIP) -->
+                  <img src="/gzip_default.png" alt="Gzip Default">
                 {{/if}}
               </div>
               <div class="card-content">

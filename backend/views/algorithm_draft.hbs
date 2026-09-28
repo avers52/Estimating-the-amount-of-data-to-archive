@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Черновик алгоритма</title>
+  <title>Параметры алгоритма</title>
   <link rel="stylesheet" href="/css/compression_styles.css">
 </head>
 <body>
@@ -12,41 +12,31 @@
         <div class="section-header">Параметры алгоритма</div>
         
         {{#if draftAlgorithm}}
-          <div class="section-subtitle">Черновой профиль (DRAFT)</div>
+          <div class="section-subtitle">Шаг 2: Публикация алгоритма</div>
 
           <!-- Форма публикации (Шаг 2) -->
           <form method="POST" action="/compression-algorithms/draft/publish/{{draftAlgorithm.algorithm_id}}">
             <div class="form-card">
               <div class="form-card-title">МЕДИАФАЙЛЫ</div>
 
-              <!-- Видео -->
+              <!-- Видео (остаётся на Шаге 2) -->
               <div class="media-field-group">
                 <div class="media-sub-label">Видео</div>
                 <div class="media-preview-box">
-                  <video id="previewVideo" autoplay loop muted playsinline>
+                  <video autoplay loop muted playsinline>
                     <source src="{{#if draftAlgorithm.video_url}}{{draftAlgorithm.video_url}}{{else}}/gzip_process.mp4{{/if}}" type="video/mp4">
                   </video>
                 </div>
-                <label class="btn-choose-file">
-                  Выбрать видео
-                  <input type="file" accept="video/*" style="display: none;" onchange="handleVideoSelect(event)">
-                </label>
-                <!-- Скрытое поле для передачи пути к видео -->
-                <input type="hidden" name="video_url" id="videoUrlInput" value="{{#if draftAlgorithm.video_url}}{{draftAlgorithm.video_url}}{{else}}/gzip_process.mp4{{/if}}">
+                <input type="hidden" name="video_url" value="{{#if draftAlgorithm.video_url}}{{draftAlgorithm.video_url}}{{else}}/gzip_process.mp4{{/if}}">
               </div>
 
-              <!-- Фото -->
-              <div class="media-field-group">
-                <div class="media-sub-label">Фото</div>
+              <!-- Фото (остаётся на Шаге 2) -->
+              <div class="media-field-group" style="margin-top: 10px;">
+                <div class="media-sub-label">Фото карточки</div>
                 <div class="media-preview-box">
-                  <img id="previewImage" src="{{#if draftAlgorithm.image_url}}{{draftAlgorithm.image_url}}{{else}}/gzip_draft.png{{/if}}" alt="Превью фото">
+                  <img src="{{#if draftAlgorithm.image_url}}{{draftAlgorithm.image_url}}{{else}}/gzip_draft.png{{/if}}" alt="Превью фото">
                 </div>
-                <label class="btn-choose-file">
-                  Выбрать фото
-                  <input type="file" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
-                </label>
-                <!-- Скрытое поле для передачи пути к фото -->
-                <input type="hidden" name="image_url" id="imageUrlInput" value="{{#if draftAlgorithm.image_url}}{{draftAlgorithm.image_url}}{{else}}/gzip_draft.png{{/if}}">
+                <input type="hidden" name="image_url" value="{{#if draftAlgorithm.image_url}}{{draftAlgorithm.image_url}}{{else}}/gzip_draft.png{{/if}}">
               </div>
             </div>
 
@@ -55,17 +45,49 @@
               <input class="input-field" type="text" value="{{draftAlgorithm.algorithm_name}}" readonly style="background:#f1f5f9; font-weight:bold;">
               <input class="input-field" type="number" step="0.01" name="compression_ratio" placeholder="Коэффициент сжатия (напр. 2.70)" required>
               <input class="input-field" type="number" name="compression_speed_mbps" placeholder="Скорость сжатия МБ/с (напр. 110)" required>
-              <textarea class="input-field" name="algorithm_description" rows="3" placeholder="Классический утилитный алгоритм сжатия..." required></textarea>
+              <textarea class="input-field" name="algorithm_description" rows="3" placeholder="Техническое описание алгоритма сжатия..." required></textarea>
               <button type="submit" class="btn-primary" style="margin-top:6px;">Опубликовать</button>
             </div>
           </form>
 
         {{else}}
-          <div class="section-subtitle">Новый алгоритм</div>
+          <div class="section-subtitle">Шаг 1: Создание черновика</div>
 
+          <!-- Форма создания: Кнопки «Выбрать файл» сверху друг под другом -->
           <form method="POST" action="/compression-algorithms/draft/create" class="form-card">
-            <div class="form-card-title">НАЗВАНИЕ АЛГОРИТМА</div>
+            
+            <!-- 1. Выбор видео сверху -->
+            <div class="media-field-group">
+              <div class="media-sub-label">Видео</div>
+              <div class="media-preview-box">
+                <video id="step1VideoPreview" autoplay loop muted playsinline>
+                  <source id="videoSourcePreview" src="/gzip_process.mp4" type="video/mp4">
+                </video>
+              </div>
+              <label class="btn-choose-file">
+                Выбрать файл видео
+                <input type="file" accept="video/*" style="display: none;" onchange="handleStep1Video(event)">
+              </label>
+              <input type="hidden" name="video_url" id="step1VideoInput" value="/gzip_process.mp4">
+            </div>
+
+            <!-- 2. Выбор фото под видео -->
+            <div class="media-field-group" style="margin-top: 12px;">
+              <div class="media-sub-label">Фото карточки</div>
+              <div class="media-preview-box">
+                <img id="step1ImagePreview" src="/gzip_draft.png" alt="Превью фото">
+              </div>
+              <label class="btn-choose-file">
+                Выбрать файл фото
+                <input type="file" accept="image/*" style="display: none;" onchange="handleStep1Image(event)">
+              </label>
+              <input type="hidden" name="image_url" id="step1ImageInput" value="/gzip_draft.png">
+            </div>
+
+            <!-- 3. Название алгоритма -->
+            <div class="form-card-title" style="margin-top: 14px;">НАЗВАНИЕ АЛГОРИТМА</div>
             <input class="input-field" type="text" name="algorithm_name" placeholder="Название алгоритма" required>
+            
             <button type="submit" class="btn-primary" style="margin-top: 8px;">Далее</button>
           </form>
         {{/if}}
@@ -80,22 +102,28 @@
   </div>
 
   <script>
-    function handleVideoSelect(event) {
+    function handleStep1Video(event) {
       const file = event.target.files[0];
       if (file) {
-        const video = document.getElementById('previewVideo');
-        video.src = URL.createObjectURL(file);
+        const video = document.getElementById('step1VideoPreview');
+        const source = document.getElementById('videoSourcePreview');
+        const objectUrl = URL.createObjectURL(file);
+        source.src = objectUrl;
+        video.load();
         video.play();
-        document.getElementById('videoUrlInput').value = '/' + file.name;
+        // Сохраняем имя файла (или путь к статике)
+        document.getElementById('step1VideoInput').value = '/' + file.name;
       }
     }
 
-    function handleImageSelect(event) {
+    function handleStep1Image(event) {
       const file = event.target.files[0];
       if (file) {
-        const img = document.getElementById('previewImage');
-        img.src = URL.createObjectURL(file);
-        document.getElementById('imageUrlInput').value = '/' + file.name;
+        const img = document.getElementById('step1ImagePreview');
+        const objectUrl = URL.createObjectURL(file);
+        img.src = objectUrl;
+        // Сохраняем имя файла (или путь к статике)
+        document.getElementById('step1ImageInput').value = '/' + file.name;
       }
     }
   </script>
