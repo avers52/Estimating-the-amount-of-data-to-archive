@@ -105,7 +105,7 @@ export class CompressionAlgorithmsService {
 
   // 4. POST DRAFT CREATE (ORM)
   async createDraft(
-    name: string,
+    name?: string,
     userId: string | number = '1',
     imageUrl?: string,
     videoUrl?: string,
@@ -113,18 +113,19 @@ export class CompressionAlgorithmsService {
     const numericUserId = Number(userId);
     const existingDraft = await this.getUserDraft(numericUserId);
 
+    const finalName = name && name.trim() !== '' ? name : 'Черновик';
     const finalImage = imageUrl && imageUrl.trim() !== '' ? imageUrl : '/gzip_draft.png';
     const finalVideo = videoUrl && videoUrl.trim() !== '' ? videoUrl : '/gzip_process.mp4';
 
     if (existingDraft) {
-      existingDraft.algorithm_name = name;
+      existingDraft.algorithm_name = finalName;
       existingDraft.image_url = finalImage;
       existingDraft.video_url = finalVideo;
       return await this.algoRepo.save(existingDraft);
     }
 
     const draft = this.algoRepo.create({
-      algorithm_name: name,
+      algorithm_name: finalName,
       creator_id: numericUserId,
       algorithm_status: AlgorithmStatus.DRAFT,
       image_url: finalImage,
@@ -133,53 +134,53 @@ export class CompressionAlgorithmsService {
     return await this.algoRepo.save(draft);
   }
 
-
   // 5. POST DRAFT PUBLISH (ORM)
   async publishDraft(
-  id: string,
-  description: string,
-  compressionRatio: number,
-  compressionSpeedMbps: number,
-  imageUrl?: string,
-  videoUrl?: string,
-) {
-  const algoId = parseInt(id, 10);
-  if (isNaN(algoId)) {
-    throw new NotFoundException('Некорректный идентификатор алгоритма');
+    id: string | number, // <-- разрешаем number и string
+    name: string,
+    description: string,
+    compressionRatio: number,
+    compressionSpeedMbps: number,
+    imageUrl?: string,
+    videoUrl?: string,
+  ) {
+    const algoId = typeof id === 'number' ? id : parseInt(id, 10);
+    if (isNaN(algoId)) {
+      throw new NotFoundException('Некорректный идентификатор алгоритма');
+    }
+
+    const draft = await this.algoRepo.findOne({
+      where: {
+        algorithm_id: algoId,
+        algorithm_status: AlgorithmStatus.DRAFT,
+      },
+    });
+
+    if (!draft) {
+      throw new NotFoundException('Черновик не найден');
+    }
+
+    if (name && name.trim() !== '') {
+      draft.algorithm_name = name;
+    }
+    draft.algorithm_description = description;
+    draft.compression_ratio = compressionRatio;
+    draft.compression_speed_mbps = compressionSpeedMbps;
+
+    draft.image_url = imageUrl && imageUrl.trim() !== '' 
+      ? imageUrl 
+      : (draft.image_url || '/gzip_draft.png');
+
+    draft.video_url = videoUrl && videoUrl.trim() !== '' 
+      ? videoUrl 
+      : (draft.video_url || '/gzip_process.mp4');
+
+    draft.algorithm_status = AlgorithmStatus.PUBLISHED;
+    draft.configured_at = new Date();
+
+    return await this.algoRepo.save(draft);
   }
 
-  const draft = await this.algoRepo.findOne({
-    where: {
-      algorithm_id: algoId,
-      algorithm_status: AlgorithmStatus.DRAFT,
-    },
-  });
-
-  if (!draft) {
-    throw new NotFoundException('Черновик не найден');
-  }
-
-  draft.algorithm_description = description || '';
-  draft.compression_ratio = isNaN(compressionRatio) ? 1.0 : compressionRatio;
-  draft.compression_speed_mbps = isNaN(compressionSpeedMbps) ? 100 : compressionSpeedMbps;
-
-  if (imageUrl && imageUrl.trim() !== '') {
-    draft.image_url = imageUrl;
-  } else if (!draft.image_url) {
-    draft.image_url = '/gzip_draft.png';
-  }
-
-  if (videoUrl && videoUrl.trim() !== '') {
-    draft.video_url = videoUrl;
-  } else if (!draft.video_url) {
-    draft.video_url = '/gzip_process.mp4';
-  }
-
-  draft.algorithm_status = AlgorithmStatus.PUBLISHED;
-  draft.configured_at = new Date();
-
-  return await this.algoRepo.save(draft);
-}
 
 
   // 6. POST CATALOG DELETE (Чистый SQL UPDATE без ORM)

@@ -42,7 +42,7 @@ export class CompressionAlgorithmsController {
   @Redirect('/compression-algorithms/draft')
   async createDraft(@Body() body: any) {
     await this.algoService.createDraft(
-      body.algorithm_name || body.name,
+      body.algorithm_name,
       1,
       body.image_url,
       body.video_url,
@@ -51,16 +51,16 @@ export class CompressionAlgorithmsController {
 
   @Post('draft/publish')
   @Redirect('/compression-algorithms/catalog')
-  async publishDraftDefault(@Body() body: any) {
-    // Находим текущий активный черновик
+  async publishDraft(@Body() body: any) {
     const draft = await this.algoService.getUserDraft(1);
     if (!draft) {
       return;
     }
 
     await this.algoService.publishDraft(
-      String(draft.algorithm_id),
-      body.algorithm_description || body.description || '',
+      String(draft.algorithm_id), // Преобразование number в string
+      body.algorithm_name,
+      body.algorithm_description || '',
       parseFloat(body.compression_ratio) || 1.0,
       parseFloat(body.compression_speed_mbps) || 100,
       body.image_url,
@@ -73,7 +73,8 @@ export class CompressionAlgorithmsController {
   async publishDraftWithId(@Param('id') id: string, @Body() body: any) {
     await this.algoService.publishDraft(
       id,
-      body.algorithm_description || body.description || '',
+      body.algorithm_name,
+      body.algorithm_description || '',
       parseFloat(body.compression_ratio) || 1.0,
       parseFloat(body.compression_speed_mbps) || 100,
       body.image_url,
