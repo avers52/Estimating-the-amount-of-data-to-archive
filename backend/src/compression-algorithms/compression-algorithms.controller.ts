@@ -49,19 +49,37 @@ export class CompressionAlgorithmsController {
     );
   }
 
-  @Post('draft/publish/:id')
+  @Post('draft/publish')
   @Redirect('/compression-algorithms/catalog')
-  async publishDraft(@Param('id') id: string, @Body() body: any) {
+  async publishDraftDefault(@Body() body: any) {
+    // Находим текущий активный черновик
+    const draft = await this.algoService.getUserDraft(1);
+    if (!draft) {
+      return;
+    }
+
     await this.algoService.publishDraft(
-      id,
-      body.algorithm_description || body.description,
-      parseFloat(body.compression_ratio),
-      parseFloat(body.compression_speed_mbps),
+      String(draft.algorithm_id),
+      body.algorithm_description || body.description || '',
+      parseFloat(body.compression_ratio) || 1.0,
+      parseFloat(body.compression_speed_mbps) || 100,
       body.image_url,
       body.video_url,
     );
   }
 
+  @Post('draft/publish/:id')
+  @Redirect('/compression-algorithms/catalog')
+  async publishDraftWithId(@Param('id') id: string, @Body() body: any) {
+    await this.algoService.publishDraft(
+      id,
+      body.algorithm_description || body.description || '',
+      parseFloat(body.compression_ratio) || 1.0,
+      parseFloat(body.compression_speed_mbps) || 100,
+      body.image_url,
+      body.video_url,
+    );
+  }
 
 
   @Post('catalog/delete/:id')

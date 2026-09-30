@@ -14,12 +14,12 @@
         {{#if draftAlgorithm}}
           <div class="section-subtitle">Шаг 2: Публикация алгоритма</div>
 
-          <!-- Форма публикации (Шаг 2) -->
-          <form method="POST" action="/compression-algorithms/draft/publish/{{draftAlgorithm.algorithm_id}}">
+          <!-- Отправляем на прямой маршрут без динамических сбоев Handlebars -->
+          <form method="POST" action="/compression-algorithms/draft/publish">
             <div class="form-card">
-              <div class="form-card-title">МЕДИАФАЙЛЫ</div>
+              <div class="form-card-title">ВЫБРАННЫЕ МЕДИАФАЙЛЫ</div>
 
-              <!-- Видео (остаётся на Шаге 2) -->
+              <!-- Видео -->
               <div class="media-field-group">
                 <div class="media-sub-label">Видео</div>
                 <div class="media-preview-box">
@@ -30,7 +30,7 @@
                 <input type="hidden" name="video_url" value="{{#if draftAlgorithm.video_url}}{{draftAlgorithm.video_url}}{{else}}/gzip_process.mp4{{/if}}">
               </div>
 
-              <!-- Фото (остаётся на Шаге 2) -->
+              <!-- Фото -->
               <div class="media-field-group" style="margin-top: 10px;">
                 <div class="media-sub-label">Фото карточки</div>
                 <div class="media-preview-box">
@@ -40,15 +40,26 @@
               </div>
             </div>
 
+            <!-- Параметры алгоритма -->
             <div class="form-card">
               <div class="form-card-title">ПАРАМЕТРЫ СЖАТИЯ</div>
-              <input class="input-field" type="text" value="{{draftAlgorithm.algorithm_name}}" readonly style="background:#f1f5f9; font-weight:bold;">
-              <input class="input-field" type="number" step="0.01" name="compression_ratio" placeholder="Коэффициент сжатия (напр. 2.70)" required>
-              <input class="input-field" type="number" name="compression_speed_mbps" placeholder="Скорость сжатия МБ/с (напр. 110)" required>
-              <textarea class="input-field" name="algorithm_description" rows="3" placeholder="Техническое описание алгоритма сжатия..." required></textarea>
-              <button type="submit" class="btn-primary" style="margin-top:6px;">Опубликовать</button>
+              
+              <!-- Имя черновика (только для чтения) -->
+              <input class="input-field" type="text" name="algorithm_name" value="{{draftAlgorithm.algorithm_name}}" readonly style="background:#f1f5f9; font-weight:bold;">
+              
+              <!-- Поле коэффициента: чистое -->
+              <input class="input-field" type="number" step="0.01" name="compression_ratio" placeholder="Коэффициент сжатия (напр. 2.70)" autocomplete="off" required>
+              
+              <!-- Поле скорости: чистое -->
+              <input class="input-field" type="number" step="1" name="compression_speed_mbps" placeholder="Скорость сжатия МБ/с (напр. 110)" autocomplete="off" required>
+              
+              <!-- Описание: строго пустое между тегами -->
+              <textarea class="input-field" name="algorithm_description" rows="3" placeholder="Техническое описание алгоритма сжатия..." autocomplete="off" required></textarea>
+              
+              <button type="submit" class="btn-primary" style="margin-top: 8px;">Опубликовать</button>
             </div>
           </form>
+
 
         {{else}}
           <div class="section-subtitle">Шаг 1: Создание черновика</div>
@@ -102,17 +113,18 @@
   </div>
 
   <script>
+    const MINIO_BASE = 'http://localhost:9000/compression-algorithms-media/';
+
     function handleStep1Video(event) {
       const file = event.target.files[0];
       if (file) {
         const video = document.getElementById('step1VideoPreview');
         const source = document.getElementById('videoSourcePreview');
-        const objectUrl = URL.createObjectURL(file);
-        source.src = objectUrl;
+        source.src = URL.createObjectURL(file);
         video.load();
         video.play();
-        // Сохраняем имя файла (или путь к статике)
-        document.getElementById('step1VideoInput').value = '/' + file.name;
+        // Привязываем ссылку на бакет MinIO по имени выбранного файла
+        document.getElementById('step1VideoInput').value = MINIO_BASE + file.name;
       }
     }
 
@@ -120,10 +132,9 @@
       const file = event.target.files[0];
       if (file) {
         const img = document.getElementById('step1ImagePreview');
-        const objectUrl = URL.createObjectURL(file);
-        img.src = objectUrl;
-        // Сохраняем имя файла (или путь к статике)
-        document.getElementById('step1ImageInput').value = '/' + file.name;
+        img.src = URL.createObjectURL(file);
+        // Привязываем ссылку на бакет MinIO по имени выбранного файла
+        document.getElementById('step1ImageInput').value = MINIO_BASE + file.name;
       }
     }
   </script>

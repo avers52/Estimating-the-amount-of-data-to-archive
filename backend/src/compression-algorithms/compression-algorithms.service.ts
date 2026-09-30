@@ -103,7 +103,7 @@ export class CompressionAlgorithmsService {
     });
   }
 
-   // 4. POST DRAFT CREATE (ORM)
+  // 4. POST DRAFT CREATE (ORM)
   async createDraft(
     name: string,
     userId: string | number = '1',
@@ -133,48 +133,53 @@ export class CompressionAlgorithmsService {
     return await this.algoRepo.save(draft);
   }
 
+
   // 5. POST DRAFT PUBLISH (ORM)
   async publishDraft(
-    id: string,
-    description: string,
-    compressionRatio: number,
-    compressionSpeedMbps: number,
-    imageUrl?: string,
-    videoUrl?: string,
-  ) {
-    const draft = await this.algoRepo.findOne({
-      where: {
-        algorithm_id: parseInt(id, 10),
-        algorithm_status: AlgorithmStatus.DRAFT,
-      },
-    });
-
-    if (!draft) {
-      throw new NotFoundException('Черновик не найден');
-    }
-
-    draft.algorithm_description = description;
-    draft.compression_ratio = compressionRatio;
-    draft.compression_speed_mbps = compressionSpeedMbps;
-    
-    // Если на Шаге 2 пришло валидное значение медиа — берем его, иначе оставляем из черновика или дефолт
-    if (imageUrl && imageUrl.trim() !== '') {
-      draft.image_url = imageUrl;
-    } else if (!draft.image_url) {
-      draft.image_url = '/gzip_draft.png';
-    }
-
-    if (videoUrl && videoUrl.trim() !== '') {
-      draft.video_url = videoUrl;
-    } else if (!draft.video_url) {
-      draft.video_url = '/gzip_process.mp4';
-    }
-
-    draft.algorithm_status = AlgorithmStatus.PUBLISHED;
-    draft.configured_at = new Date();
-
-    return await this.algoRepo.save(draft);
+  id: string,
+  description: string,
+  compressionRatio: number,
+  compressionSpeedMbps: number,
+  imageUrl?: string,
+  videoUrl?: string,
+) {
+  const algoId = parseInt(id, 10);
+  if (isNaN(algoId)) {
+    throw new NotFoundException('Некорректный идентификатор алгоритма');
   }
+
+  const draft = await this.algoRepo.findOne({
+    where: {
+      algorithm_id: algoId,
+      algorithm_status: AlgorithmStatus.DRAFT,
+    },
+  });
+
+  if (!draft) {
+    throw new NotFoundException('Черновик не найден');
+  }
+
+  draft.algorithm_description = description || '';
+  draft.compression_ratio = isNaN(compressionRatio) ? 1.0 : compressionRatio;
+  draft.compression_speed_mbps = isNaN(compressionSpeedMbps) ? 100 : compressionSpeedMbps;
+
+  if (imageUrl && imageUrl.trim() !== '') {
+    draft.image_url = imageUrl;
+  } else if (!draft.image_url) {
+    draft.image_url = '/gzip_draft.png';
+  }
+
+  if (videoUrl && videoUrl.trim() !== '') {
+    draft.video_url = videoUrl;
+  } else if (!draft.video_url) {
+    draft.video_url = '/gzip_process.mp4';
+  }
+
+  draft.algorithm_status = AlgorithmStatus.PUBLISHED;
+  draft.configured_at = new Date();
+
+  return await this.algoRepo.save(draft);
+}
 
 
   // 6. POST CATALOG DELETE (Чистый SQL UPDATE без ORM)
