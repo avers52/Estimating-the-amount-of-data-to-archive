@@ -119,11 +119,15 @@ export class CompressionAlgorithmsService {
     return toAlgorithmDto(draft, user.id, 0, false);
   }
 
-    // 4. POST /api/services — создание черновика с загрузкой файлов в MinIO
+   // 4. POST /api/services — создание черновика с загрузкой файлов в MinIO
   async createService(
     name: string,
-    files: { image?: UploadedFile[]; video?: UploadedFile[] },
+    files?: { image?: UploadedFile[]; video?: UploadedFile[] },
   ): Promise<AlgorithmResponseDto> {
+    if (!name || name.trim() === '') {
+      throw new BadRequestException('Поле algorithm_name обязательно для заполнения');
+    }
+
     const user = getCurrentUser();
 
     let existingDraft = await this.algoRepo.findOne({
@@ -136,12 +140,17 @@ export class CompressionAlgorithmsService {
     let imageUrl = existingDraft?.image_url ?? '';
     let videoUrl = existingDraft?.video_url ?? '';
 
-    if (files.image?.[0]) {
+    // Безопасная проверка наличия загруженных файлов
+    if (files && files.image && files.image[0]) {
       imageUrl = await this.minioService.uploadFile(files.image[0], 'image');
     }
-    if (files.video?.[0]) {
+    if (files && files.video && files.video[0]) {
       videoUrl = await this.minioService.uploadFile(files.video[0], 'video');
     }
+
+    // Если в БД image_url и video_url имеют NOT NULL, подставляем дефолт
+    if (!imageUrl) imageUrl = 'http://localhost:3000/gzip_draft.png';
+    if (!videoUrl) videoUrl = 'http://localhost:3000/gzip_process.mp4';
 
     if (existingDraft) {
       existingDraft.algorithm_name = name;
@@ -162,6 +171,9 @@ export class CompressionAlgorithmsService {
     const saved = await this.algoRepo.save(draft);
     return toAlgorithmDto(saved, user.id, 0, false);
   }
+
+
+
 
 
   // 5. PUT /api/services/:id/publish — смена статуса с draft на published
