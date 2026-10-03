@@ -1,10 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  OneToMany,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { CompressionAlgorithm } from '../../compression-algorithms/entities/compression-algorithm.entity';
 import { AlgorithmLike } from '../../compression-algorithms/entities/algorithm-like.entity';
 
@@ -19,8 +13,8 @@ export class User {
   @Column({ name: 'email', type: 'varchar', length: 120, unique: true })
   email: string;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
-  created_at: Date;
+  @Column({ name: 'password', type: 'varchar', length: 255 })
+  password: string;
 
   @OneToMany(() => CompressionAlgorithm, (algo) => algo.creator)
   algorithms: CompressionAlgorithm[];
@@ -28,3 +22,5 @@ export class User {
   @OneToMany(() => AlgorithmLike, (like) => like.user)
   likes: AlgorithmLike[];
 }
+
+

@@ -2,95 +2,92 @@ import {
   Controller,
   Get,
   Post,
-  Body,
+  Put,
+  Delete,
   Param,
   Query,
-  Render,
-  Redirect,
+  Body,
+  UseInterceptors,
+  UploadedFiles,
+  ParseIntPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { CompressionAlgorithmsService } from './compression-algorithms.service';
+import { AlgorithmResponseDto } from './dto/algorithm-response.dto';
+import { UploadedFile } from '../common/uploaded-file.interface';
 
-@Controller('compression-algorithms')
+@Controller('api/services')
 export class CompressionAlgorithmsController {
-  constructor(
-    private readonly algoService: CompressionAlgorithmsService,
-  ) {}
+  constructor(private readonly algoService: CompressionAlgorithmsService) {}
 
-  @Get('feed')
-  @Render('algorithm_feed')
-  async getFeed(@Query('algorithm_id') id?: string) {
-    const algorithm = await this.algoService.getFeed(id);
-    return { algorithm };
+  @Get()
+  async getCatalog(
+    @Query('min_compression_ratio') minRatio?: string,
+  ): Promise<AlgorithmResponseDto[]> {
+    const parsed = minRatio ? parseFloat(minRatio) : undefined;
+    return this.algoService.getCatalog(parsed);
   }
 
-  @Get('catalog')
-  @Render('algorithm_catalog')
-  async getCatalog(@Query('min_compression_ratio') minRatio?: string) {
-    const ratio = minRatio ? parseFloat(minRatio) : undefined;
-    const algorithmsList = await this.algoService.getCatalog(ratio);
-    return { algorithmsList, filterValue: minRatio };
+  @Get('feed')
+  async getFeed(
+    @Query('algorithm_id') id?: string,
+    @Query('next') next?: string,
+  ): Promise<AlgorithmResponseDto> {
+    return this.algoService.getFeed(id, next === 'true');
   }
 
   @Get('draft')
-  @Render('algorithm_draft')
-  async getDraft() {
-    const draftAlgorithm = await this.algoService.getUserDraft(1);
-    return { draftAlgorithm };
+  async getDraft(): Promise<AlgorithmResponseDto> {
+    return this.algoService.getDraft();
   }
 
-  @Post('draft/create')
-  @Redirect('/compression-algorithms/draft')
-  async createDraft(@Body() body: any) {
-    await this.algoService.createDraft(
-      body.algorithm_name,
-      1,
-      body.image_url,
-      body.video_url,
-    );
-  }
-
-  @Post('draft/publish')
-  @Redirect('/compression-algorithms/catalog')
-  async publishDraft(@Body() body: any) {
-    const draft = await this.algoService.getUserDraft(1);
-    if (!draft) {
-      return;
-    }
-
-    await this.algoService.publishDraft(
-      String(draft.algorithm_id), // Преобразование number в string
-      body.algorithm_name,
-      body.algorithm_description || '',
-      parseFloat(body.compression_ratio) || 1.0,
-      parseFloat(body.compression_speed_mbps) || 100,
-      body.image_url,
-      body.video_url,
-    );
-  }
-
-  @Post('draft/publish/:id')
-  @Redirect('/compression-algorithms/catalog')
-  async publishDraftWithId(@Param('id') id: string, @Body() body: any) {
-    await this.algoService.publishDraft(
-      id,
-      body.algorithm_name,
-      body.algorithm_description || '',
-      parseFloat(body.compression_ratio) || 1.0,
-      parseFloat(body.compression_speed_mbps) || 100,
-      body.image_url,
-      body.video_url,
-    );
+  @Post()
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'image', maxCount: 1 },
+      { name: 'video', maxCount: 1 },
+    ]),
+  )
+  async createService(
+    @Body('algorithm_name') name: string,
+    @UploadedFiles()
+    files: { image?: UploadedFile[]; video?: UploadedFile[] },
+  ): Promise<AlgorithmResponseDto> {
+    return this.algoService.createService(name, files);
   }
 
 
-  @Post('catalog/delete/:id')
-  @Redirect('/compression-algorithms/catalog')
-  async deleteAlgorithm(@Param('id') id: string) {
-    await this.algoService.deleteAlgorithmRawSql(id);
+  @Put(':id/publish')
+  async publishService(
+    @Param('id', ParseIntPipe) id: number,
+    @Body()
+    body: {
+      algorithm_description: string;
+      compression_ratio: number;
+      compression_speed_mbps: number;
+    },
+  ): Promise<AlgorithmResponseDto> {
+    return this.algoService.publishService(id, {
+      description: body.algorithm_description,
+      compression_ratio: parseFloat(String(body.compression_ratio)),
+      compression_speed_mbps: parseInt(String(body.compression_speed_mbps), 10),
+    });
   }
 
-  @Get(':id')
-  async getOne(@Param('id') id: string) {
-    return await this.algoService.getAlgorithmById(id);
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteService(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    return this.algoService.deleteService(id);
+  }
+
+  @Post(':id/like')
+  @HttpCode(HttpStatus.OK)
+  async setLike(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('is_liked', ParseIntPipe) isLiked: number,
+  ): Promise<void> {
+    return this.algoService.setLike(id, isLiked);
   }
 }

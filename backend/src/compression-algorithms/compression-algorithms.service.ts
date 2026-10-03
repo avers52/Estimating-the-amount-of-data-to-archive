@@ -1,8 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, MoreThanOrEqual } from 'typeorm';
+import { Repository, MoreThanOrEqual } from 'typeorm';
 import { CompressionAlgorithm, AlgorithmStatus } from './entities/compression-algorithm.entity';
 import { AlgorithmLike } from './entities/algorithm-like.entity';
+import { getCurrentUser } from '../common/current-user.singleton';
+import { MinioService } from '../common/minio.service';
+import { toAlgorithmDto, AlgorithmResponseDto } from './dto/algorithm-response.dto';
+import { UploadedFile } from '../common/uploaded-file.interface';
+
 
 @Injectable()
 export class CompressionAlgorithmsService {
@@ -11,197 +21,232 @@ export class CompressionAlgorithmsService {
     private readonly algoRepo: Repository<CompressionAlgorithm>,
     @InjectRepository(AlgorithmLike)
     private readonly likeRepo: Repository<AlgorithmLike>,
-    private readonly dataSource: DataSource,
+    private readonly minioService: MinioService,
   ) {}
 
-  // 1. GET FEED (ORM)
-  async getFeed(currentId?: string) {
-    let algorithm: CompressionAlgorithm | null = null;
+  // 1. GET /api/services — список услуг с фильтрацией (только PUBLISHED, без DELETED)
+  async getCatalog(minRatio?: number): Promise<AlgorithmResponseDto[]> {
+    const user = getCurrentUser();
+    const where: any = { algorithm_status: AlgorithmStatus.PUBLISHED };
 
-    if (currentId) {
-      algorithm = await this.algoRepo.findOne({
-        where: {
-          algorithm_id: parseInt(currentId, 10),
-          algorithm_status: AlgorithmStatus.PUBLISHED,
-        },
-      });
+    if (minRatio !== undefined && !isNaN(minRatio)) {
+      where.compression_ratio = MoreThanOrEqual(minRatio);
     }
 
-    if (!algorithm) {
-      algorithm = await this.algoRepo.findOne({
+    const items = await this.algoRepo.find({
+      where,
+      order: { algorithm_id: 'ASC' },
+    });
+
+    return Promise.all(
+      items.map(async (algo) => {
+        const likesCount = await this.likeRepo.count({
+          where: { algorithm_id: String(algo.algorithm_id) as any },
+        });
+        const isLiked = await this.likeRepo.exists({
+          where: {
+            algorithm_id: String(algo.algorithm_id) as any,
+            user_id: String(user.id) as any,
+          },
+        });
+        return toAlgorithmDto(algo, user.id, likesCount, isLiked);
+      }),
+    );
+  }
+
+  // 2. GET /api/services/feed — лента по ID и без ID с поддержкой ?next=true
+  async getFeed(currentId?: string, isNext?: boolean): Promise<AlgorithmResponseDto> {
+    const user = getCurrentUser();
+    let targetAlgo: CompressionAlgorithm | null = null;
+
+    if (currentId) {
+      const parsedId = parseInt(currentId, 10);
+      if (isNext) {
+        targetAlgo = await this.algoRepo
+          .createQueryBuilder('algo')
+          .where('algo.algorithm_status = :status', { status: AlgorithmStatus.PUBLISHED })
+          .andWhere('algo.algorithm_id > :id', { id: parsedId })
+          .orderBy('algo.algorithm_id', 'ASC')
+          .getOne();
+      } else {
+        targetAlgo = await this.algoRepo.findOne({
+          where: {
+            algorithm_id: parsedId,
+            algorithm_status: AlgorithmStatus.PUBLISHED,
+          },
+        });
+      }
+    }
+
+    if (!targetAlgo) {
+      targetAlgo = await this.algoRepo.findOne({
         where: { algorithm_status: AlgorithmStatus.PUBLISHED },
         order: { algorithm_id: 'ASC' },
       });
     }
 
-    if (!algorithm) return null;
-
-    const nextAlgo = await this.algoRepo
-      .createQueryBuilder('algo')
-      .where('algo.algorithm_status = :status', { status: AlgorithmStatus.PUBLISHED })
-      .andWhere('algo.algorithm_id > :currentId', { currentId: algorithm.algorithm_id })
-      .orderBy('algo.algorithm_id', 'ASC')
-      .getOne();
-
-    const firstAlgo = await this.algoRepo.findOne({
-      where: { algorithm_status: AlgorithmStatus.PUBLISHED },
-      order: { algorithm_id: 'ASC' },
-    });
-
-    const nextId = nextAlgo
-      ? nextAlgo.algorithm_id
-      : firstAlgo
-      ? firstAlgo.algorithm_id
-      : algorithm.algorithm_id;
+    if (!targetAlgo) {
+      throw new NotFoundException();
+    }
 
     const likesCount = await this.likeRepo.count({
-      where: { algorithm_id: String(algorithm.algorithm_id) as any },
+      where: { algorithm_id: String(targetAlgo.algorithm_id) as any },
     });
-
-    return {
-      ...algorithm,
-      nextId,
-      likes_count: likesCount,
-    };
-  }
-
-  // 2. GET CATALOG (ORM)
-  async getCatalog(minRatio?: number) {
-    const whereCondition: any = {
-      algorithm_status: AlgorithmStatus.PUBLISHED,
-    };
-
-    if (minRatio !== undefined && !isNaN(minRatio)) {
-      whereCondition.compression_ratio = MoreThanOrEqual(minRatio);
-    }
-
-    const algorithms = await this.algoRepo.find({
-      where: whereCondition,
-      order: { algorithm_id: 'ASC' },
-    });
-
-    return Promise.all(
-      algorithms.map(async (algo) => {
-        const likesCount = await this.likeRepo.count({
-          where: { algorithm_id: String(algo.algorithm_id) as any },
-        });
-        return {
-          ...algo,
-          likes_count: likesCount,
-        };
-      }),
-    );
-  }
-
-  // 3. GET DRAFT (ORM)
-  async getUserDraft(userId: string | number = '1') {
-    return await this.algoRepo.findOne({
+    const isLiked = await this.likeRepo.exists({
       where: {
-        creator_id: Number(userId),
-        algorithm_status: AlgorithmStatus.DRAFT,
+        algorithm_id: String(targetAlgo.algorithm_id) as any,
+        user_id: String(user.id) as any,
       },
     });
+
+    return toAlgorithmDto(targetAlgo, user.id, likesCount, isLiked);
   }
 
-  // 4. POST DRAFT CREATE (ORM)
-  async createDraft(
-    name?: string,
-    userId: string | number = '1',
-    imageUrl?: string,
-    videoUrl?: string,
-  ) {
-    const numericUserId = Number(userId);
-    const existingDraft = await this.getUserDraft(numericUserId);
-
-    const finalName = name && name.trim() !== '' ? name : 'Черновик';
-    const finalImage = imageUrl && imageUrl.trim() !== '' ? imageUrl : '/gzip_draft.png';
-    const finalVideo = videoUrl && videoUrl.trim() !== '' ? videoUrl : '/gzip_process.mp4';
-
-    if (existingDraft) {
-      existingDraft.algorithm_name = finalName;
-      existingDraft.image_url = finalImage;
-      existingDraft.video_url = finalVideo;
-      return await this.algoRepo.save(existingDraft);
-    }
-
-    const draft = this.algoRepo.create({
-      algorithm_name: finalName,
-      creator_id: numericUserId,
-      algorithm_status: AlgorithmStatus.DRAFT,
-      image_url: finalImage,
-      video_url: finalVideo,
-    });
-    return await this.algoRepo.save(draft);
-  }
-
-  // 5. POST DRAFT PUBLISH (ORM)
-  async publishDraft(
-    id: string | number, // <-- разрешаем number и string
-    name: string,
-    description: string,
-    compressionRatio: number,
-    compressionSpeedMbps: number,
-    imageUrl?: string,
-    videoUrl?: string,
-  ) {
-    const algoId = typeof id === 'number' ? id : parseInt(id, 10);
-    if (isNaN(algoId)) {
-      throw new NotFoundException('Некорректный идентификатор алгоритма');
-    }
-
+  // 3. GET /api/services/draft — получение черновика текущего пользователя (не более 1 записи)
+  async getDraft(): Promise<AlgorithmResponseDto> {
+    const user = getCurrentUser();
     const draft = await this.algoRepo.findOne({
       where: {
-        algorithm_id: algoId,
+        creator_id: user.id,
         algorithm_status: AlgorithmStatus.DRAFT,
       },
     });
 
     if (!draft) {
-      throw new NotFoundException('Черновик не найден');
+      throw new NotFoundException();
     }
 
-    if (name && name.trim() !== '') {
-      draft.algorithm_name = name;
+    return toAlgorithmDto(draft, user.id, 0, false);
+  }
+
+    // 4. POST /api/services — создание черновика с загрузкой файлов в MinIO
+  async createService(
+    name: string,
+    files: { image?: UploadedFile[]; video?: UploadedFile[] },
+  ): Promise<AlgorithmResponseDto> {
+    const user = getCurrentUser();
+
+    let existingDraft = await this.algoRepo.findOne({
+      where: {
+        creator_id: user.id,
+        algorithm_status: AlgorithmStatus.DRAFT,
+      },
+    });
+
+    let imageUrl = existingDraft?.image_url ?? '';
+    let videoUrl = existingDraft?.video_url ?? '';
+
+    if (files.image?.[0]) {
+      imageUrl = await this.minioService.uploadFile(files.image[0], 'image');
     }
-    draft.algorithm_description = description;
-    draft.compression_ratio = compressionRatio;
-    draft.compression_speed_mbps = compressionSpeedMbps;
+    if (files.video?.[0]) {
+      videoUrl = await this.minioService.uploadFile(files.video[0], 'video');
+    }
 
-    draft.image_url = imageUrl && imageUrl.trim() !== '' 
-      ? imageUrl 
-      : (draft.image_url || '/gzip_draft.png');
+    if (existingDraft) {
+      existingDraft.algorithm_name = name;
+      existingDraft.image_url = imageUrl;
+      existingDraft.video_url = videoUrl;
+      const saved = await this.algoRepo.save(existingDraft);
+      return toAlgorithmDto(saved, user.id, 0, false);
+    }
 
-    draft.video_url = videoUrl && videoUrl.trim() !== '' 
-      ? videoUrl 
-      : (draft.video_url || '/gzip_process.mp4');
+    const draft = this.algoRepo.create({
+      algorithm_name: name,
+      creator_id: user.id,
+      algorithm_status: AlgorithmStatus.DRAFT,
+      image_url: imageUrl,
+      video_url: videoUrl,
+    });
 
-    draft.algorithm_status = AlgorithmStatus.PUBLISHED;
-    draft.configured_at = new Date();
-
-    return await this.algoRepo.save(draft);
+    const saved = await this.algoRepo.save(draft);
+    return toAlgorithmDto(saved, user.id, 0, false);
   }
 
 
-
-  // 6. POST CATALOG DELETE (Чистый SQL UPDATE без ORM)
-  async deleteAlgorithmRawSql(id: string) {
-    const query = `
-      UPDATE compression_algorithms 
-      SET algorithm_status = 'deleted' 
-      WHERE algorithm_id = $1;
-    `;
-    return await this.dataSource.query(query, [parseInt(id, 10)]);
-  }
-
-  // Прямое обращение по ID (404 для удаленных)
-  async getAlgorithmById(id: string) {
+  // 5. PUT /api/services/:id/publish — смена статуса с draft на published
+  async publishService(
+    id: number,
+    data: {
+      description: string;
+      compression_ratio: number;
+      compression_speed_mbps: number;
+    },
+  ): Promise<AlgorithmResponseDto> {
+    const user = getCurrentUser();
     const algo = await this.algoRepo.findOne({
-      where: { algorithm_id: parseInt(id, 10) },
+      where: { algorithm_id: id },
     });
 
     if (!algo || algo.algorithm_status === AlgorithmStatus.DELETED) {
-      throw new NotFoundException('Услуга удалена или не существует');
+      throw new NotFoundException();
     }
-    return algo;
+    if (algo.creator_id !== user.id) {
+      throw new ForbiddenException();
+    }
+    if (algo.algorithm_status !== AlgorithmStatus.DRAFT) {
+      throw new BadRequestException();
+    }
+
+    algo.algorithm_description = data.description;
+    algo.compression_ratio = data.compression_ratio;
+    algo.compression_speed_mbps = data.compression_speed_mbps;
+    algo.algorithm_status = AlgorithmStatus.PUBLISHED;
+
+    const saved = await this.algoRepo.save(algo);
+    return toAlgorithmDto(saved, user.id, 0, false);
+  }
+
+  // 6. DELETE /api/services/:id — soft delete (только для услуг этого пользователя)
+  async deleteService(id: number): Promise<void> {
+    const user = getCurrentUser();
+    const algo = await this.algoRepo.findOne({
+      where: { algorithm_id: id },
+    });
+
+    if (!algo || algo.algorithm_status === AlgorithmStatus.DELETED) {
+      throw new NotFoundException();
+    }
+    if (algo.creator_id !== user.id) {
+      throw new ForbiddenException();
+    }
+
+    algo.algorithm_status = AlgorithmStatus.DELETED;
+    await this.algoRepo.save(algo);
+  }
+
+  // 7. POST /api/services/:id/like — 1 ставит лайк, 0 снимает лайк
+  async setLike(algorithmId: number, isLiked: number): Promise<void> {
+    const user = getCurrentUser();
+    const algo = await this.algoRepo.findOne({
+      where: {
+        algorithm_id: algorithmId,
+        algorithm_status: AlgorithmStatus.PUBLISHED,
+      },
+    });
+
+    if (!algo) {
+      throw new NotFoundException();
+    }
+
+    const existingLike = await this.likeRepo.findOne({
+      where: {
+        user_id: String(user.id),
+        algorithm_id: String(algorithmId),
+      },
+    });
+
+    if (isLiked === 1 && !existingLike) {
+      const newLike = this.likeRepo.create({
+        user_id: String(user.id),
+        algorithm_id: String(algorithmId),
+      });
+      await this.likeRepo.save(newLike);
+    } else if (isLiked === 0 && existingLike) {
+      await this.likeRepo.delete({
+        user_id: String(user.id),
+        algorithm_id: String(algorithmId),
+      });
+    }
   }
 }

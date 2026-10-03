@@ -4,13 +4,11 @@ import { CompressionAlgorithmsController } from './compression-algorithms.contro
 import { CompressionAlgorithmsService } from './compression-algorithms.service';
 import { CompressionAlgorithm } from './entities/compression-algorithm.entity';
 import { AlgorithmLike } from './entities/algorithm-like.entity';
+import { MinioService } from '../common/minio.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([CompressionAlgorithm, AlgorithmLike]),
-  ],
+  imports: [TypeOrmModule.forFeature([CompressionAlgorithm, AlgorithmLike])],
   controllers: [CompressionAlgorithmsController],
-  providers: [CompressionAlgorithmsService],
-  exports: [CompressionAlgorithmsService],
+  providers: [CompressionAlgorithmsService, MinioService],
 })
 export class CompressionAlgorithmsModule {}
