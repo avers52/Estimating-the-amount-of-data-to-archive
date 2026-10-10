@@ -18,7 +18,7 @@ import { CompressionAlgorithmsService } from './compression-algorithms.service';
 import { AlgorithmResponseDto } from './dto/algorithm-response.dto';
 import { UploadedFile } from '../common/uploaded-file.interface';
 
-@Controller('api/services')
+@Controller('api/compression-algorithm')
 export class CompressionAlgorithmsController {
   constructor(private readonly algoService: CompressionAlgorithmsService) {}
 
