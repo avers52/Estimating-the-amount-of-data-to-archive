@@ -1,4 +1,4 @@
-import { Controller, Get, Render, Query } from '@nestjs/common';
+import { Controller, Get, Post, Render, Query, Param, Body, Redirect } from '@nestjs/common';
 import { CompressionAlgorithmsService } from './compression-algorithms.service';
 
 @Controller('compression-algorithms')
@@ -34,6 +34,43 @@ export class CompressionAlgorithmsPageController {
       return { draftAlgorithm: draft };
     } catch {
       return { draftAlgorithm: null };
+    }
+  }
+
+  // ШАГ 1: Создание черновика с названием и медиа
+  @Post('draft/create')
+  @Redirect('/compression-algorithms/draft')
+  async createDraftForm(@Body() body: any) {
+    await this.algoService.createService(
+      body.algorithm_name,
+      undefined, // файлов нет (форма отправляет url)
+      {
+        imageUrl: body.image_url,
+        videoUrl: body.video_url,
+      },
+    );
+  }
+
+  // ШАГ 2: Публикация с остальными параметрами
+  @Post('draft/publish')
+  @Redirect('/compression-algorithms/catalog')
+  async publishDraftForm(@Body() body: any) {
+    const draft = await this.algoService.getDraft();
+    if (!draft) return;
+
+    await this.algoService.publishService(draft.algorithm_id, {
+      description: body.algorithm_description || '',
+      compression_ratio: parseFloat(body.compression_ratio) || 1.0,
+      compression_speed_mbps: parseInt(body.compression_speed_mbps, 10) || 100,
+    });
+  }
+
+  // Удаление алгоритма из каталога (soft delete)
+  @Post('catalog/delete/:id')
+  @Redirect('/compression-algorithms/catalog')
+  async deleteForm(@Param('id') id: string) {
+    if (id) {
+      await this.algoService.deleteService(parseInt(id, 10));
     }
   }
 }

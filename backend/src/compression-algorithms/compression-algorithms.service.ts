@@ -119,10 +119,12 @@ export class CompressionAlgorithmsService {
     return toAlgorithmDto(draft, user.id, 0, false);
   }
 
-   // 4. POST /api/services — создание черновика с загрузкой файлов в MinIO
+
+  // 4. POST /api/services — создание черновика с загрузкой файлов или сохранением переданных URL
   async createService(
     name: string,
     files?: { image?: UploadedFile[]; video?: UploadedFile[] },
+    customUrls?: { imageUrl?: string; videoUrl?: string },
   ): Promise<AlgorithmResponseDto> {
     if (!name || name.trim() === '') {
       throw new BadRequestException('Поле algorithm_name обязательно для заполнения');
@@ -137,10 +139,11 @@ export class CompressionAlgorithmsService {
       },
     });
 
-    let imageUrl = existingDraft?.image_url ?? '';
-    let videoUrl = existingDraft?.video_url ?? '';
+    // Берем URL из существующих, либо из переданных формой customUrls
+    let imageUrl = customUrls?.imageUrl || existingDraft?.image_url || '';
+    let videoUrl = customUrls?.videoUrl || existingDraft?.video_url || '';
 
-    // Безопасная проверка наличия загруженных файлов
+    // Если переданы бинарные файлы (через REST API)
     if (files && files.image && files.image[0]) {
       imageUrl = await this.minioService.uploadFile(files.image[0], 'image');
     }
@@ -148,9 +151,9 @@ export class CompressionAlgorithmsService {
       videoUrl = await this.minioService.uploadFile(files.video[0], 'video');
     }
 
-    // Если в БД image_url и video_url имеют NOT NULL, подставляем дефолт
-    if (!imageUrl) imageUrl = 'http://localhost:3000/gzip_draft.png';
-    if (!videoUrl) videoUrl = 'http://localhost:3000/gzip_process.mp4';
+    // Если URL всё ещё пустые, подставляем дефолт
+    if (!imageUrl) imageUrl = '/gzip_draft.png';
+    if (!videoUrl) videoUrl = '/gzip_process.mp4';
 
     if (existingDraft) {
       existingDraft.algorithm_name = name;
@@ -171,7 +174,6 @@ export class CompressionAlgorithmsService {
     const saved = await this.algoRepo.save(draft);
     return toAlgorithmDto(saved, user.id, 0, false);
   }
-
 
 
 
