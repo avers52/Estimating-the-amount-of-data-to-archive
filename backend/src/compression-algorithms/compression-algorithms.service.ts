@@ -113,7 +113,9 @@ export class CompressionAlgorithmsService {
     const numericUserId = Number(userId);
     const existingDraft = await this.getUserDraft(numericUserId);
 
-    const finalName = name && name.trim() !== '' ? name : 'Черновик';
+    // Если название не ввели, ставим fallback, иначе берем введенное пользователем
+    const finalName = name && name.trim() !== '' ? name.trim() : 'Новый алгоритм';
+    // Если файл не выбрали, сохраняются пути к статике по умолчанию
     const finalImage = imageUrl && imageUrl.trim() !== '' ? imageUrl : '/gzip_draft.png';
     const finalVideo = videoUrl && videoUrl.trim() !== '' ? videoUrl : '/gzip_process.mp4';
 
