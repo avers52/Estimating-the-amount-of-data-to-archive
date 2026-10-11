@@ -4,8 +4,8 @@ import { AlgorithmLike } from '../../compression-algorithms/entities/algorithm-l
 
 @Entity('users')
 export class User {
-  @PrimaryGeneratedColumn('increment', { type: 'bigint' })
-  id: string;
+  @PrimaryGeneratedColumn('increment', { type: 'int' })
+  id: number;
 
   @Column({ name: 'full_name', type: 'varchar', length: 120, nullable: true })
   name: string;
@@ -22,5 +22,3 @@ export class User {
   @OneToMany(() => AlgorithmLike, (like) => like.user)
   likes: AlgorithmLike[];
 }
-
-

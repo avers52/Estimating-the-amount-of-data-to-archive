@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { AlgorithmLike } from './algorithm-like.entity';
 
@@ -34,6 +42,12 @@ export class CompressionAlgorithm {
   @Column({ name: 'compression_speed_mbps', type: 'int', nullable: true })
   compression_speed_mbps: number;
 
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
+  created_at: Date;
+
+  @Column({ name: 'configured_at', type: 'timestamp', nullable: true })
+  configured_at: Date;
+
   @Column({ name: 'creator_id', type: 'int' })
   creator_id: number;
 
@@ -44,5 +58,3 @@ export class CompressionAlgorithm {
   @OneToMany(() => AlgorithmLike, (like) => like.algorithm)
   likes: AlgorithmLike[];
 }
-
-
