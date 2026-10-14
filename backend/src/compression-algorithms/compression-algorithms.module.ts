@@ -8,9 +8,7 @@ import { MinioService } from '../common/minio.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([CompressionAlgorithm, AlgorithmLike])],
-  controllers: [
-    CompressionAlgorithmsController, // Оставляем только чистый REST API контроллер
-  ],
+  controllers: [CompressionAlgorithmsController],
   providers: [CompressionAlgorithmsService, MinioService],
   exports: [CompressionAlgorithmsService],
 })
